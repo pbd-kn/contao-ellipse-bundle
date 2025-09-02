@@ -1,0 +1,14 @@
+{
+  "name": "pbd-kn/contao-ellipse-bundle",
+  "description": "Contao Bundle zur Anzeige einer Ellipse mit SVG-Ausgabe",
+  "type": "contao-bundle",
+  "license": "MIT",
+  "autoload": {
+    "psr-4": {
+      "PbdKn\\ContaoEllipseBundle\\": "src/"
+    }
+  },
+  "extra": {
+    "contao-manager-plugin": "PbdKn\\ContaoEllipseBundle\\ContaoManager\\Plugin"
+  }
+}
