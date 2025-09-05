@@ -10,11 +10,11 @@ use PbdKn\ContaoEllipseBundle\PbdKnContaoEllipseBundle;
 
 class Plugin implements BundlePluginInterface
 {
-    public function getBundles(ParserInterface $parser)
+    public function getBundles(ParserInterface $parser): array
     {
         return [
             BundleConfig::create(PbdKnContaoEllipseBundle::class)
-                ->setLoadAfter([ContaoCoreBundle::class])
+                ->setLoadAfter([ContaoCoreBundle::class]),
         ];
     }
 }
