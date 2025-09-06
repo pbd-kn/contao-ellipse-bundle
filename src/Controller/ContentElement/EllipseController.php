@@ -46,18 +46,27 @@ class EllipseController extends AbstractContentElementController
         $B = (int) $val('B', 'ellipse_minor_axis', 200);
         $R = (int) $val('R', 'ellipse_circle_radius', 20);
         $G = (int) $val('G', 'ellipse_angle_limit', 360);
-        $S = (float) $val('S', 'ellipse_step_size', 0.05);
 
-        // Weitere Werte (die du evtl. noch ins DCA schreiben willst)
-        $circleSize  = (int) $request->query->get('circleSize', 3);
+        // Schrittweite (Float, egal ob , oder . eingegeben)
+        $Sraw = (string) $val('S', 'ellipse_step_size', '0.05');
+        $S = (float) str_replace(',', '.', $Sraw);
+
+        // Weitere Parameter
+        $circleSize  = (int) $request->query->get('circleSize', 0);
         $textSize    = (int) $request->query->get('textSize', 3);
         $lineWidth   = (float) $request->query->get('lineWidth', 1.0);
         $lineMode    = (string) $request->query->get('lineMode', 'fixed');
         $lineColor   = (string) $request->query->get('lineColor', 'red');
 
-        // Checkboxen (kein Wert im GET = false)
-        $showEllipse = $request->query->has('showEllipse');
-        $showCircle  = $request->query->has('showCircle');
+        // Wenn Kreisgröße leer oder <1 ? automatisch aus Textgröße berechnen
+        if ($circleSize < 1) {
+            $circleSize = max(1, (int) round($textSize * 0.6));
+        }
+
+        // Checkboxen
+        $submitted = $request->query->has('submitted');
+        $showEllipse = $request->query->has('showEllipse') ? true : ($submitted ? false : (bool) $model->showEllipse);
+        $showCircle  = $request->query->has('showCircle')  ? true : ($submitted ? false : (bool) $model->showCircle);
 
         // Zyklische Farben (max. 6)
         $cycleColors = [];

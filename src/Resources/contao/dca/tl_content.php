@@ -72,9 +72,16 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_angle_limit'] = [
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_step_size'] = [
-    'label'     => ['Schrittweite (Radiant)', 'z. B. 0.05'],
+    'label'     => ['Schrittweite (Radiant) zwischen den Punkten', 'z. B. 60'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class' => 'w50', 'mandatory'=>true, 'rgxp'=>'numeric', 'default'=>0.05],
-    'sql'       => "varchar(16) NOT NULL default '0.05'"
+    // keine strenge rgxp-Prüfung, erlaubt jede Zahl mit Punkt oder Komma
+    'eval'      => [
+        'tl_class'   => 'w50',
+        'mandatory'  => true,
+        'decodeEntities' => true,
+        'rgxp'       => null,   // keine RegEx-Prüfung erzwingen
+    ],
+    'sql'       => "varchar(16) NOT NULL default '60'"
 ];
+
