@@ -1,87 +1,164 @@
 <?php
-use PbdKn\ContaoEllipseBundle\Controller\ContentElement\EllipseController;
+
+use Contao\Controller;
+
+$GLOBALS['TL_DCA']['tl_content']['palettes']['__selector__'][] = 'ellipse_line_mode';
 
 $GLOBALS['TL_DCA']['tl_content']['palettes']['ce_ellipse']
-    = '{type_legend},type,headline;{ellipse_legend},ellipse_template,ellipse_major_axis,ellipse_minor_axis,ellipse_circle_radius,ellipse_point_offset,ellipse_angle_limit,ellipse_step_size;{expert_legend:hide},cssID;{invisible_legend:hide},invisible,start,stop';
+    = '{type_legend},type,headline;'
+    . '{ellipse_legend},ellipse_template,template_selection_active,'
+    . 'ellipse_major_axis,ellipse_minor_axis,ellipse_circle_radius,'
+    . 'ellipse_point_offset,ellipse_angle_limit,ellipse_step_size,'
+    . 'ellipse_line_thickness,ellipse_line_mode;'
+    . '{expert_legend:hide},cssID;'
+    . '{invisible_legend:hide},invisible,start,stop';
+
+$GLOBALS['TL_DCA']['tl_content']['subpalettes']['ellipse_line_mode_fixed']
+    = 'ellipse_line_color';
+
+$GLOBALS['TL_DCA']['tl_content']['subpalettes']['ellipse_line_mode_cycle']
+    = 'ellipse_cycle_color1,ellipse_cycle_color2,ellipse_cycle_color3,ellipse_cycle_color4,ellipse_cycle_color5,ellipse_cycle_color6';
+
+// ============================================================================
+// Felder
+// ============================================================================
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_template'] = [
     'label' => &$GLOBALS['TL_LANG']['tl_content']['ellipse_template'],
     'exclude' => true,
     'inputType' => 'select',
     'options_callback' => static function () {
-        // Alle Templates holen, die mit 'ce_ellipse_' beginnen
-        $options = \Contao\Controller::getTemplateGroup('ce_ellipse_');
-
-        // Das gewünschte Standard-Template
+        $options = Controller::getTemplateGroup('ce_ellipse_');
         $defaultTemplate = 'ce_ellipse';
-
-        // Prüfen, ob das Standard-Template bereits in der Liste ist
         if (!isset($options[$defaultTemplate])) {
-            // Nicht vorhanden ? an den Anfang setzen und '(Standard)' ergänzen
             $options = [$defaultTemplate => $defaultTemplate . ' (Standard)'] + $options;
         } else {
-            // Vorhanden ? nur '(Standard)' ergänzen
             $options[$defaultTemplate] .= ' (Standard)';
         }
-
         return $options;
     },
     'eval' => ['tl_class' => 'clr w50', 'includeBlankOption' => false],
-    'sql' => "varchar(128) NOT NULL default ''",
+    'sql'  => "varchar(128) NOT NULL default ''",
 ];
 
+$GLOBALS['TL_DCA']['tl_content']['fields']['template_selection_active'] = [
+    'label'     => ['Konfiguration über Template zulassen', 'GET-Parameter dürfen Werte überschreiben.'],
+    'exclude'   => true,
+    'inputType' => 'checkbox',
+    'eval'      => ['tl_class' => 'w50 clr', 'isBoolean' => true],
+    'sql'       => "char(1) NOT NULL default ''",
+];
 
+// Zahlenfelder
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_major_axis'] = [
-    'label'     => ['Länge der großen Halbachse', 'z. B. 200'],
+    'label'     => ['Große Halbachse (A)', 'z. B. 400'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class' => 'w50', 'mandatory'=>true, 'rgxp'=>'digit', 'default'=>200],
-    'sql'       => "int(10) unsigned NOT NULL default 200"
+    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>400],
+    'sql'       => "int(10) unsigned NOT NULL default 400",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_minor_axis'] = [
-    'label'     => ['Länge der kleinen Halbachse', 'z. B. 150'],
+    'label'     => ['Kleine Halbachse (B)', 'z. B. 200'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class' => 'w50', 'mandatory'=>true, 'rgxp'=>'digit', 'default'=>150],
-    'sql'       => "int(10) unsigned NOT NULL default 150"
+    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>200],
+    'sql'       => "int(10) unsigned NOT NULL default 200",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_circle_radius'] = [
-    'label'     => ['Radius des Hilfskreises', 'z. B. 40'],
+    'label'     => ['Hilfskreis-Radius (R)', 'z. B. 20'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class' => 'w50', 'mandatory'=>true, 'rgxp'=>'digit', 'default'=>40],
-    'sql'       => "int(10) unsigned NOT NULL default 40"
+    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>20],
+    'sql'       => "int(10) unsigned NOT NULL default 20",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_point_offset'] = [
-    'label'     => ['Punktabstand', 'z. B. 15'],
+    'label'     => ['Punktabstand (S)', 'z. B. 15.5 oder 15,5'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class' => 'w50', 'mandatory'=>true, 'rgxp'=>'digit', 'default'=>15],
-    'sql'       => "int(10) unsigned NOT NULL default 15"
+    'eval'      => [
+        'tl_class'=>'w50',
+        'mandatory'=>true,
+        'rgxp'=>'custom',
+        'customRgxp'=>'/^\d+(?:[.,]\d+)?$/',
+        'default'=>15,
+    ],
+    'sql'       => "double NOT NULL default 15",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_angle_limit'] = [
-    'label'     => ['Grenzwinkel (in Grad)', 'z. B. 360'],
+    'label'     => ['Grenzwinkel (G)', 'z. B. 360'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class' => 'w50', 'mandatory'=>true, 'rgxp'=>'digit', 'default'=>360],
-    'sql'       => "int(10) unsigned NOT NULL default 360"
+    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>360],
+    'sql'       => "int(10) unsigned NOT NULL default 360",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_step_size'] = [
-    'label'     => ['Schrittweite (Radiant) zwischen den Punkten', 'z. B. 60'],
+    'label'     => ['Schrittweite', 'z. B. 0.05'],
     'exclude'   => true,
     'inputType' => 'text',
-    // keine strenge rgxp-Prüfung, erlaubt jede Zahl mit Punkt oder Komma
+    'eval'      => [
+        'tl_class'=>'w50 clr',
+        'mandatory'=>true,
+        'rgxp'=>'custom',
+        'customRgxp'=>'/^\d+(?:[.,]\d+)?$/',
+        'default'=>0.05,
+    ],
+    'sql'       => "double NOT NULL default 0.05",
+];
+
+$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_thickness'] = [
+    'label'     => ['Linienstärke', 'z. B. 0.2'],
+    'exclude'   => true,
+    'inputType' => 'text',
     'eval'      => [
         'tl_class'   => 'w50',
         'mandatory'  => true,
-        'decodeEntities' => true,
-        'rgxp'       => null,   // keine RegEx-Prüfung erzwingen
+        'rgxp'       => 'custom',
+        'customRgxp' => '/^\d+(?:[.,]\d+)?$/', // erlaubt 0.2 oder 0,2
+        'default'    => 0.2,
     ],
-    'sql'       => "varchar(16) NOT NULL default '60'"
+    'sql'       => "double NOT NULL default 0.2",
 ];
 
+
+// Linienmodus
+$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_mode'] = [
+    'label'     => ['Linienmodus', 'Fest oder zyklische Farben'],
+    'exclude'   => true,
+    'inputType' => 'select',
+    'options'   => ['fixed', 'cycle'],
+    'reference' => [
+        'fixed' => 'Feste Farbe',
+        'cycle' => 'Zyklische Farben',
+    ],
+    'eval'      => [
+        'tl_class'=>'w50',
+        'mandatory'=>true,
+        'includeBlankOption'=>false,
+        'submitOnChange'=>true,
+    ],
+    'sql'       => "varchar(16) NOT NULL default 'fixed'",
+];
+
+$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_color'] = [
+    'label'     => ['Linienfarbe (fest)', 'z. B. red oder #ff0000'],
+    'exclude'   => true,
+    'inputType' => 'text',
+    'eval'      => ['tl_class'=>'w50','maxlength'=>64,'default'=>'red'],
+    'sql'       => "varchar(64) NOT NULL default 'red'",
+];
+
+// Zyklische Farben
+for ($i = 1; $i <= 6; $i++) {
+    $GLOBALS['TL_DCA']['tl_content']['fields']["ellipse_cycle_color{$i}"] = [
+        'label'     => ["Farbe {$i}", "Farbwert für Position {$i} (z. B. red oder #ff0000)"],
+        'exclude'   => true,
+        'inputType' => 'text',
+        'eval'      => ['tl_class'=>'w50','maxlength'=>64],
+        'sql'       => "varchar(64) NOT NULL default ''",
+    ];
+}

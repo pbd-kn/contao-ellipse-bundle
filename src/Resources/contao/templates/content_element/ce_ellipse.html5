@@ -1,5 +1,10 @@
 <div class="ce_ellipse">
-  <h2>Ellipse mit Linien</h2>
+<?php if ($this->headlineHtml): ?>
+<?= $this->headlineHtml ?>
+<?php endif; ?>
+  
+ <?php $this->templateSelectionActive=true;  ?>
+    <?php if ($this->templateSelectionActive): ?>
 
   <!-- Formular -->
   <form method="get" class="ellipse-form">
@@ -121,6 +126,8 @@
       <button type="button" onclick="toggleHelp(true)">Hilfe anzeigen</button>
     </div>
   </form>
+<?php else: ?>
+<?php endif; ?>
 
   <!-- SVG -->
   <div id="svg-container">

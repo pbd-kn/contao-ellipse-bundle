@@ -18,6 +18,9 @@ class EllipseController extends AbstractContentElementController
 
     protected function getResponse($template, ContentModel $model, Request $request): Response
     {
+        // Gewähltes Frontend-Template oder Fallback
+        $templateName = $model->ellipse_template ?: 'ce_ellipse';
+
         // --- Backend Wildcard ---
         $scope = System::getContainer()->get('request_stack')?->getCurrentRequest()?->attributes?->get('_scope');
         if ('backend' === $scope) {
@@ -25,7 +28,8 @@ class EllipseController extends AbstractContentElementController
             $wildcard->title = StringUtil::deserialize($model->headline)['value'] ?? 'Ellipse';
             $wildcard->id = $model->id;
             $wildcard->href = 'contao?do=themes&table=tl_content&id=' . $model->id;
-            $wildcard->wildcard = '### Ellipse ###';
+            $wildcardtxt = "### Ellipse<br>Template: {$templateName}<br>";
+            $wildcard->wildcard = '<div class="text-truncate" title="'.$wildcardtxt.'">'.$wildcardtxt.'</div>';
             return new Response($wildcard->parse());
         }
 
@@ -41,44 +45,55 @@ class EllipseController extends AbstractContentElementController
             return $default;
         };
 
-        // --- Parameter aus Formular / DB / Defaults
+        // --- Parameter aus Formular / DB / Defaults ---
         $A = (int) $val('A', 'ellipse_major_axis', 400);
         $B = (int) $val('B', 'ellipse_minor_axis', 200);
-        $R = (int) $val('R', 'ellipse_circle_radius', 20);
         $G = (int) $val('G', 'ellipse_angle_limit', 360);
+        $R = (int) $val('R', 'ellipse_point_sequence', 20);
 
-        // Schrittweite (Float, egal ob , oder . eingegeben)
+        // Schrittweite
         $Sraw = (string) $val('S', 'ellipse_step_size', '0.05');
         $S = (float) str_replace(',', '.', $Sraw);
 
-        // Weitere Parameter
-        $circleSize  = (int) $request->query->get('circleSize', 0);
-        $textSize    = (int) $request->query->get('textSize', 3);
-        $lineWidth   = (float) $request->query->get('lineWidth', 1.0);
-        $lineMode    = (string) $request->query->get('lineMode', 'fixed');
-        $lineColor   = (string) $request->query->get('lineColor', 'red');
+        // Linienstärke
+        $lineWidthRaw = (string) $val('lineWidth', 'ellipse_line_thickness', '3');
+        $lineWidth = (float) str_replace(',', '.', $lineWidthRaw);
 
-        // Wenn Kreisgröße leer oder <1 ? automatisch aus Textgröße berechnen
+        // Linienmodus
+        $lineMode = (string) $val('lineMode', 'ellipse_line_mode', 'fixed');
+
+        // Farben
+        $lineColor = '';
+        $cycleColors = [];
+
+        if ($lineMode === 'fixed') {
+            // feste Farbe
+            $lineColor = (string) $val('lineColor', 'ellipse_line_color', 'red');
+        } else {
+            // zyklische Farben
+            for ($i = 1; $i <= 6; $i++) {
+                $color = (string) $val("cycleColor{$i}", "ellipse_cycle_color{$i}", '');
+                if ($color !== '') {
+                    $cycleColors[] = trim($color);
+                }
+            }
+            if (empty($cycleColors)) {
+                $cycleColors = ["red", "green", "blue", "orange", "purple", "brown"];
+            }
+        }
+
+        // Weitere Parameter
+        $circleSize = (int) $request->query->get('circleSize', 0);
+        $textSize   = (int) $request->query->get('textSize', 3);
+
         if ($circleSize < 1) {
             $circleSize = max(1, (int) round($textSize * 0.6));
         }
 
         // Checkboxen
-        $submitted = $request->query->has('submitted');
+        $submitted   = $request->query->has('submitted');
         $showEllipse = $request->query->has('showEllipse') ? true : ($submitted ? false : (bool) $model->showEllipse);
         $showCircle  = $request->query->has('showCircle')  ? true : ($submitted ? false : (bool) $model->showCircle);
-
-        // Zyklische Farben (max. 6)
-        $cycleColors = [];
-        for ($i = 1; $i <= 6; $i++) {
-            $color = trim((string) $request->query->get("cycleColor$i", ''));
-            if ($color !== '') {
-                $cycleColors[] = $color;
-            }
-        }
-        if (empty($cycleColors)) {
-            $cycleColors = ["red", "green", "blue", "orange", "purple"];
-        }
 
         // --- SVG Setup ---
         $margin = 20;
@@ -97,9 +112,20 @@ class EllipseController extends AbstractContentElementController
             $points[] = ['x' => $x, 'y' => $y];
         }
 
-        // --- Template laden ---
-        $template = $this->createTemplate($model, 'ce_ellipse');
+        // Template erzeugen
+        $template = $this->createTemplate($model, $templateName);
 
+$template = $this->createTemplate($model, $templateName);
+
+if ($model->headline) {
+    $hl = \Contao\StringUtil::deserialize($model->headline);
+    $headlineTag = $hl['unit'] ?: 'h2';
+    $headlineText = $hl['value'] ?? '';
+
+    $template->headlineHtml = sprintf('<%1$s>%2$s</%1$s>', $headlineTag, $headlineText);
+} else {
+    $template->headlineHtml = '';
+}
         // --- Variablen ins Template ---
         foreach ([
             'A' => $A,
@@ -117,6 +143,7 @@ class EllipseController extends AbstractContentElementController
             'cycleColors' => $cycleColors,
             'viewBox'     => $viewBox,
             'points'      => $points,
+            'templateSelectionActive' => (bool) $model->template_selection_active,
         ] as $key => $value) {
             $template->set($key, $value);
         }
