@@ -1,0 +1,7 @@
+<?php
+
+/** @var Contao\BackendTemplate $this */
+?>
+<div class="tl_wildcard">
+  <?= $this->wildcard ?>
+</div>
