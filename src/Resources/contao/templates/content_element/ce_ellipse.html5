@@ -3,18 +3,23 @@
     <?= $this->headlineHtml ?>
   <?php endif; ?>
 
-  <div class="ce-id">
-    Content-Element ID: <?= $this->id ?>
-  </div>
-
-  <?php if ($this->templateSelectionActive): ?>
     <!-- Formular -->
     <form method="get" id="ellipse-form-<?= $this->id ?>" class="ellipse-form">
-      <input type="hidden" name="ceId" value="<?= $this->id ?>">
+        <input type="hidden" name="ceId" value="<?= $this->id ?>">
+        <div class="form-row">
+            <label for="templateSelectionActive_<?= $this->id ?>">Konfiguration anzeigen</label>
+            <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="0">
+            <input type="checkbox"
+                name="templateSelectionActive_<?= $this->id ?>"
+                id="templateSelectionActive_<?= $this->id ?>"
+                value="1"
+                <?= $this->templateSelectionActive ? 'checked' : '' ?>
+                onchange="this.form.submit();">
+        </div>
 
+    <?php if ($this->templateSelectionActive): ?>
       <fieldset>
         <legend>Parameter</legend>
-
         <div class="form-row">
           <label for="A_<?= $this->id ?>">A Halbachse X</label>
           <input type="number" step="any"
@@ -22,7 +27,6 @@
                  id="A_<?= $this->id ?>"
                  value="<?= $this->A ?>">
         </div>
-
         <div class="form-row">
           <label for="B_<?= $this->id ?>">B Halbachse Y</label>
           <input type="number" step="any"
@@ -30,15 +34,13 @@
                  id="B_<?= $this->id ?>"
                  value="<?= $this->B ?>">
         </div>
-
         <div class="form-row">
-          <label for="G_<?= $this->id ?>">G Winkel max</label>
+          <label for="G_<?= $this->id ?>">G Winkel/Umdrehungen</label>
           <input type="number" step="any"
                  name="G_<?= $this->id ?>"
                  id="G_<?= $this->id ?>"
                  value="<?= $this->G ?>">
         </div>
-
         <div class="form-row">
           <label for="S_<?= $this->id ?>">S Punktschrittweite</label>
           <input type="number" step="any"
@@ -46,7 +48,6 @@
                  id="S_<?= $this->id ?>"
                  value="<?= $this->S ?>">
         </div>
-
         <div class="form-row">
           <label for="R_<?= $this->id ?>">R Reihenfolge Pkt</label>
           <input type="number" step="any"
@@ -54,7 +55,6 @@
                  id="R_<?= $this->id ?>"
                  value="<?= $this->R ?>">
         </div>
-
         <div class="form-row">
           <label for="lineWidth_<?= $this->id ?>">Linienstärke</label>
           <input type="number" step="any"
@@ -62,7 +62,6 @@
                  id="lineWidth_<?= $this->id ?>"
                  value="<?= $this->lineWidth ?>">
         </div>
-
         <div class="form-row">
           <label for="lineMode_<?= $this->id ?>">Linienfarbe</label>
           <select name="lineMode_<?= $this->id ?>"
@@ -72,7 +71,6 @@
             <option value="cycle" <?= $this->lineMode=="cycle" ? "selected" : "" ?>>Zyklische Farben</option>
           </select>
         </div>
-
         <div class="form-row">
           <label for="lineColor_<?= $this->id ?>">Farbe (bei fest)</label>
           <input type="text"
@@ -81,7 +79,6 @@
                  value="<?= $this->lineColor ?>">
         </div>
       </fieldset>
-
       <fieldset class="color-fieldset" id="cycleColors_<?= $this->id ?>">
         <legend>Zyklische Farben</legend>
         <div class="color-grid">
@@ -98,10 +95,8 @@
           <?php endfor; ?>
         </div>
       </fieldset>
-
       <fieldset>
-        <legend>Weitere Optionen</legend>
-
+        <legend>Weitere Optionen z.B für Debug</legend>
         <div class="form-row">
           <label for="circleSize_<?= $this->id ?>">Punktgröße (r)</label>
           <input type="number" step="any"
@@ -109,7 +104,6 @@
                  id="circleSize_<?= $this->id ?>"
                  value="<?= $this->circleSize ?>">
         </div>
-
         <div class="form-row">
           <label for="textSize_<?= $this->id ?>">Textgröße</label>
           <input type="number" step="any"
@@ -117,7 +111,6 @@
                  id="textSize_<?= $this->id ?>"
                  value="<?= $this->textSize ?>">
         </div>
-
         <div class="form-row">
           <label for="showEllipse_<?= $this->id ?>">Ellipse anzeigen</label>
           <input type="hidden" name="showEllipse_<?= $this->id ?>" value="0">
@@ -126,7 +119,6 @@
                  id="showEllipse_<?= $this->id ?>"
                  value="1" <?= $this->showEllipse ? 'checked' : '' ?>>
         </div>
-
         <div class="form-row">
           <label for="showCircle_<?= $this->id ?>">Kreise + Nummern anzeigen</label>
           <input type="hidden" name="showCircle_<?= $this->id ?>" value="0">
@@ -136,15 +128,14 @@
                  value="1" <?= $this->showCircle ? 'checked' : '' ?>>
         </div>
       </fieldset>
-
       <div class="form-actions">
         <button type="submit" name="submitted_<?= $this->id ?>" value="1">Neu zeichnen</button>
         <button type="button" onclick="printSVG(<?= $this->id ?>)">SVG drucken</button>
         <button type="button" onclick="downloadSVG(<?= $this->id ?>)">SVG speichern</button>
         <button type="button" onclick="toggleHelp(<?= $this->id ?>, true)">Hilfe anzeigen</button>
       </div>
-    </form>
   <?php endif; ?>
+    </form>
 
   <!-- Fehleranzeige -->
   <?php if (!empty($this->errors)): ?>

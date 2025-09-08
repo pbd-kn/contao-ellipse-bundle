@@ -69,11 +69,19 @@ class EllipseController extends AbstractContentElementController
             $errors[] = "B (Halbachse Y) muss zwischen 1 und 5000 liegen. Wert wurde begrenzt.";
             $B = min(max($B, 1), 5000);
         }
-
-        $G = (int) $val('G', 'ellipse_angle_limit', 360);
+/*
+        $G = (int) $val('G', 'ellipse_angle_limit', 1);   // default 1 Umdrehung
         if ($G < 1 || $G > 20000) {
             $errors[] = "G (Winkel) darf maximal 20000° sein. Wert wurde begrenzt. eingegeben $G";
             $G = min(max($G, 1), 360);
+        }
+*/
+        $GRaw = (string) $val('G', 'ellipse_angle_limit', '1');  // default 1 Umdrehung
+        $G = (float) str_replace(',', '.', $GRaw);
+        if ($G > 40) {   // angabe in grad
+            $grenzWnkel = $G;
+        } else {
+            $grenzWnkel = $G*360;
         }
 
         $Sraw = (string) $val('S', 'ellipse_step_size', '10');
@@ -84,11 +92,11 @@ class EllipseController extends AbstractContentElementController
         }
 
         $maxPoints = 2000;
-        $numPoints = (int) ceil($G / $S);
+        $numPoints = (int) ceil($grenzWnkel / $S);
         if ($numPoints > $maxPoints) {
             $errors[] = "Zu viele Punkte ($numPoints). Es werden nur $maxPoints Punkte gezeichnet.";
             $numPoints = $maxPoints;
-            $G = $S * $maxPoints;
+            $grenzWnkel = $S * $maxPoints;
         }
 
         $R = (int) $val('R', 'ellipse_point_sequence', 20);
@@ -134,6 +142,8 @@ class EllipseController extends AbstractContentElementController
         }
 
         // Checkboxen: GET-Werte (0/1) haben Vorrang, sonst DB
+        $templateSelectionActive = (bool) $request->query->get('templateSelectionActive_' . $currentCeId, $model->template_selection_active);
+        
         $showEllipse = (bool) $request->query->get('showEllipse_' . $currentCeId, $model->showEllipse);
         $showCircle  = (bool) $request->query->get('showCircle_' . $currentCeId, $model->showCircle);
 
@@ -151,7 +161,7 @@ class EllipseController extends AbstractContentElementController
         );
 
         $points = [];
-        for ($angle = 0; $angle <= $G; $angle += $S) {
+        for ($angle = 0; $angle <= $grenzWnkel; $angle += $S) {
             $rad = deg2rad($angle);
             $x = $A * cos($rad);
             $y = $B * sin($rad);
@@ -185,7 +195,7 @@ class EllipseController extends AbstractContentElementController
             'cycleColors' => $cycleColors,
             'viewBox'     => $viewBox,
             'points'      => $points,
-            'templateSelectionActive' => (bool) $model->template_selection_active,
+            'templateSelectionActive' => $templateSelectionActive,
             'errors'      => $errors,
         ] as $key => $value) {
             $template->set($key, $value);

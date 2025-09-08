@@ -83,26 +83,13 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_minor_axis'] = [
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_angle_limit'] = [
-    'label'     => ['Grenzwinkel (G)', 'z. B. 360'],
+    'label'     => ['Grenzwinkel (G)', 'z. B. 1 = eine Umdrehung, 360=360 Grad '],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>360],
-    'sql'       => "int(10) unsigned NOT NULL default 360",
+    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>1],
+    'sql'       => "int(10) unsigned NOT NULL default 1",
 ];
 
-$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_point_offset'] = [
-    'label'     => ['Punktabstand (S)', 'z. B. 15.5 oder 15,5'],
-    'exclude'   => true,
-    'inputType' => 'text',
-    'eval'      => [
-        'tl_class'=>'w50',
-        'mandatory'=>true,
-        'rgxp'=>'custom',
-        'customRgxp'=>'/^\d+(?:[.,]\d+)?$/',
-        'default'=>15,
-    ],
-    'sql'       => "double NOT NULL default 15",
-];
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_point_sequence'] = [
     'label'     => ['Reihenfolge Punkte (R)', 'z. B. 20'],
     'exclude'   => true,
