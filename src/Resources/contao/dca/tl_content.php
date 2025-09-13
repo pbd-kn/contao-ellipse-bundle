@@ -70,16 +70,16 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_major_axis'] = [
     'label'     => ['Große Halbachse (A)', 'z. B. 400'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>400],
-    'sql'       => "int(10) unsigned NOT NULL default 400",
+    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>100],
+    'sql'       => "int(10) unsigned NOT NULL default 100",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_minor_axis'] = [
     'label'     => ['Kleine Halbachse (B)', 'z. B. 200'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>200],
-    'sql'       => "int(10) unsigned NOT NULL default 200",
+    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>80],
+    'sql'       => "int(10) unsigned NOT NULL default 80",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_angle_limit'] = [
@@ -87,20 +87,20 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_angle_limit'] = [
     'exclude'   => true,
     'inputType' => 'text',
     'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>1],
-    'sql'       => "int(10) unsigned NOT NULL default 1",
+    'sql'       => "int(10) unsigned NOT NULL default 33",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_point_sequence'] = [
     'label'     => ['Reihenfolge Punkte (R)', 'z. B. 20'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>20],
-    'sql'       => "int(10) unsigned NOT NULL default 20",
+    'eval'      => ['tl_class'=>'w50','mandatory'=>true,'rgxp'=>'digit','default'=>21],
+    'sql'       => "int(10) unsigned NOT NULL default 21",
 ];
 
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_step_size'] = [
-    'label'     => ['Schrittweite', 'z. B. 0.05'],
+    'label'     => ['Schrittweite', 'z. B. 1'],
     'exclude'   => true,
     'inputType' => 'text',
     'eval'      => [
@@ -110,7 +110,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_step_size'] = [
         'customRgxp'=>'/^\d+(?:[.,]\d+)?$/',
         'default'=>0.05,
     ],
-    'sql'       => "double NOT NULL default 0.05",
+    'sql'       => "double NOT NULL default 21",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_thickness'] = [
@@ -124,7 +124,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_thickness'] = [
         'customRgxp' => '/^\d+(?:[.,]\d+)?$/', // erlaubt 0.2 oder 0,2
         'default'    => 0.2,
     ],
-    'sql'       => "double NOT NULL default 0.2",
+    'sql'       => "double NOT NULL default 0.5",
 ];
 
 

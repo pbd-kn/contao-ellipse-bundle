@@ -17,17 +17,20 @@
 
 .ellipse-form .form-row label {
   font-weight: bold;
-  width: 150px;
+  /* width: 150px; */
   margin-right: 0.5rem;
 }
 
 .ellipse-form .form-row input,
 .ellipse-form .form-row select {
   flex: 0 1 auto;          /* nicht maximal breit */
-  width: 150px;            /* Standardbreite */
+    /* width: 150px;          Standardbreite */
   max-width: 200px;        /* Maximalbreite */
   padding: 0.2rem 0.4rem;
   font-size: 0.9rem;
+}
+.ellipse-form .form-row input {
+  width: 80px;
 }
 
 .ellipse-form .form-actions {
@@ -55,6 +58,9 @@
 .color-cell label {
   min-width: 60px;
   font-weight: bold;
+}
+.color-cell input {
+  width: 80px;
 }
 
 #helpPopup {

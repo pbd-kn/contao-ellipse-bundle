@@ -179,27 +179,23 @@ class EllipseController extends AbstractContentElementController
             $template->headlineHtml = '';
         }
 
-        foreach ([
-            'A' => $A,
-            'B' => $B,
-            'R' => $R,
-            'G' => $G,
-            'S' => $S,
-            'showEllipse' => $showEllipse,
-            'showCircle'  => $showCircle,
-            'circleSize'  => $circleSize,
-            'textSize'    => $textSize,
-            'lineWidth'   => $lineWidth,
-            'lineMode'    => $lineMode,
-            'lineColor'   => $lineColor,
-            'cycleColors' => $cycleColors,
-            'viewBox'     => $viewBox,
-            'points'      => $points,
-            'templateSelectionActive' => $templateSelectionActive,
-            'errors'      => $errors,
-        ] as $key => $value) {
-            $template->set($key, $value);
-        }
+        $template->A = $A;
+        $template->B = $B;
+        $template->R = $R;
+        $template->G = $G;
+        $template->S = $S;
+        $template->showEllipse = $showEllipse;
+        $template->showCircle  = $showCircle;
+        $template->circleSize  = $circleSize;
+        $template->textSize    = $textSize;
+        $template->lineWidth   = $lineWidth;
+        $template->lineMode    = $lineMode;
+        $template->lineColor   = $lineColor;
+        $template->cycleColors = $cycleColors;
+        $template->viewBox     = $viewBox;
+        $template->points      = $points;
+        $template->templateSelectionActive = $templateSelectionActive;
+        $template->errors      = $errors;
 
         return $template->getResponse();
     }
