@@ -21,35 +21,35 @@
       <fieldset>
         <legend>Parameter</legend>
         <div class="form-row">
-          <label for="A_<?= $this->id ?>">A Halbachse X</label>
+          <label for="A_<?= $this->id ?>">Halbachse X</label>
           <input type="number" step="any"
                  name="A_<?= $this->id ?>"
                  id="A_<?= $this->id ?>"
                  value="<?= $this->A ?>">
         </div>
         <div class="form-row">
-          <label for="B_<?= $this->id ?>">B Halbachse Y</label>
+          <label for="B_<?= $this->id ?>">Halbachse Y</label>
           <input type="number" step="any"
                  name="B_<?= $this->id ?>"
                  id="B_<?= $this->id ?>"
                  value="<?= $this->B ?>">
         </div>
         <div class="form-row">
-          <label for="G_<?= $this->id ?>">G Winkel/Umdrehungen</label>
+          <label for="G_<?= $this->id ?>">Winkel/Umdrehungen</label>
           <input type="number" step="any"
                  name="G_<?= $this->id ?>"
                  id="G_<?= $this->id ?>"
                  value="<?= $this->G ?>">
         </div>
         <div class="form-row">
-          <label for="S_<?= $this->id ?>">S Punktschrittweite</label>
+          <label for="S_<?= $this->id ?>">Punktschrittweite</label>
           <input type="number" step="any"
                  name="S_<?= $this->id ?>"
                  id="S_<?= $this->id ?>"
                  value="<?= $this->S ?>">
         </div>
         <div class="form-row">
-          <label for="R_<?= $this->id ?>">R Reihenfolge Pkt</label>
+          <label for="R_<?= $this->id ?>">Reihenfolge Pkt</label>
           <input type="number" step="any"
                  name="R_<?= $this->id ?>"
                  id="R_<?= $this->id ?>"
@@ -201,28 +201,59 @@
       <ul>
         <li><b>A</b>: Halbachse X</li>
         <li><b>B</b>: Halbachse Y</li>
-        <li><b>G</b>: Gesamtwinkel (Grad)</li>
+        <li><b>G</b>: Gesamtwinkel (Grad) oder Umdrehungen</li>
         <li><b>S</b>: Schrittweite (Grad)</li>
         <li><b>R</b>: Verbindungsreihenfolge</li>
-        <li><b>Kreisgröße</b>: Radius der Marker</li>
-        <li><b>Textgröße</b>: Schriftgröße</li>
         <li><b>Linienstärke</b>: Dicke der Linien</li>
         <li><b>Linienfarbe</b>: Fest oder zyklisch</li>
+        <li><b>Kreisgröße</b>: Radius der Kreise (Debug)</li>
+        <li><b>Textgröße</b>: Schriftgröße Kreise (Debug)</li>
       </ul>
       <button onclick="toggleHelp(<?= $this->id ?>, false)">Schließen</button>
     </div>
   </div>
 </div>
 
-<script>
+<style>
+/* Popup Overlay */
+#helpPopup-<?= $this->id ?> {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 9999;
+}
 
+/* Popup Content */
+#helpContent-<?= $this->id ?> {
+  background: #f5f5c0;
+  background-color: var(--pb-body-bg);;
+
+  border: 1px solid #999;
+  padding: 20px;
+  border-radius: 6px;
+  max-width: 600px;
+  font-family: monospace;
+}
+</style>
+
+<script>
 function printSVG(id) {
   const svg = document.getElementById("ellipse-svg-" + id).outerHTML;
   const win = window.open('', '', 'width=900,height=700');
-  const str = '<html><head><title>Drucken</title></head><body onload="window.print();window.close()">'+svg+'<//body><//html>';
+  const str = '<html><head><title>Drucken</title></head>' +
+              '<body onload="window.print();window.close()">' +
+              svg +
+              '<\/body><\/html>';   // <--- Escape!
   win.document.write(str);
   win.document.close();
 }
+
 
 function downloadSVG(id) {
   const svg = document.getElementById("ellipse-svg-" + id).outerHTML;
