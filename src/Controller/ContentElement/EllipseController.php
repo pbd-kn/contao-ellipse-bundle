@@ -69,13 +69,7 @@ class EllipseController extends AbstractContentElementController
             $errors[] = "B (Halbachse Y) muss zwischen 1 und 5000 liegen. Wert wurde begrenzt.";
             $B = min(max($B, 1), 5000);
         }
-/*
-        $G = (int) $val('G', 'ellipse_angle_limit', 1);   // default 1 Umdrehung
-        if ($G < 1 || $G > 20000) {
-            $errors[] = "G (Winkel) darf maximal 20000° sein. Wert wurde begrenzt. eingegeben $G";
-            $G = min(max($G, 1), 360);
-        }
-*/
+
         $GRaw = (string) $val('G', 'ellipse_angle_limit', '1');  // default 1 Umdrehung
         $G = (float) str_replace(',', '.', $GRaw);
         if ($G > 40) {   // angabe in grad
@@ -84,7 +78,7 @@ class EllipseController extends AbstractContentElementController
             $grenzWnkel = $G*360;
         }
 
-        $Sraw = (string) $val('S', 'ellipse_step_size', '10');
+        $Sraw = (string) $val('S', 'ellipse_step_size', '10'); //schritteite der Punkte
         $S = (float) str_replace(',', '.', $Sraw);
         if ($S < 1) {
             $errors[] = "S (Schrittweite) muss mindestens 1 sein. Wert wurde auf 1 gesetzt.";
@@ -99,7 +93,7 @@ class EllipseController extends AbstractContentElementController
             $grenzWnkel = $S * $maxPoints;
         }
 
-        $R = (int) $val('R', 'ellipse_point_sequence', 20);
+        $R = (int) $val('R', 'ellipse_point_sequence', 20);    // Reihenfolge in der die Punkte gezeichnet werden
 
         $lineWidthRaw = (string) $val('lineWidth', 'ellipse_line_thickness', '3');
         $lineWidth = (float) str_replace(',', '.', $lineWidthRaw);
@@ -134,7 +128,7 @@ class EllipseController extends AbstractContentElementController
 
             // Wenn keine gesetzt: Standardfarben
             if (count($cycleColors) === 0) {
-                $cycleColors = ["red", "green", "blue", "orange", "purple", "brown"];
+                $cycleColors = ["blue", "green", "red", "orange", "purple", "brown"];
             }
 
             // Ellipse-Farbe auf erste Zyklusfarbe setzen

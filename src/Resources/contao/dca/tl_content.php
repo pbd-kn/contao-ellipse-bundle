@@ -90,7 +90,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_angle_limit'] = [
     'sql'       => "int(10) unsigned NOT NULL default 33",
 ];
 
-$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_point_sequence'] = [
+$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_point_sequence'] = [  // reihenfolge in der die punkte gezeichnet werden
     'label'     => ['Reihenfolge Punkte (R)', 'z. B. 20'],
     'exclude'   => true,
     'inputType' => 'text',
@@ -99,7 +99,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_point_sequence'] = [
 ];
 
 
-$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_step_size'] = [
+$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_step_size'] = [   //schrittweite der Punkte
     'label'     => ['Schrittweite', 'z. B. 1'],
     'exclude'   => true,
     'inputType' => 'text',
@@ -110,7 +110,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_step_size'] = [
         'customRgxp'=>'/^\d+(?:[.,]\d+)?$/',
         'default'=>0.05,
     ],
-    'sql'       => "double NOT NULL default 21",
+    'sql'       => "double NOT NULL default 131",
 ];
 
 $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_thickness'] = [
@@ -151,8 +151,8 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_color'] = [
     'label'     => ['Linienfarbe (fest)', 'z. B. red oder #ff0000'],
     'exclude'   => true,
     'inputType' => 'text',
-    'eval'      => ['tl_class'=>'w50','maxlength'=>64,'default'=>'red'],
-    'sql'       => "varchar(64) NOT NULL default 'red'",
+    'eval'      => ['tl_class'=>'w50','maxlength'=>64,'default'=>'blue'],
+    'sql'       => "varchar(64) NOT NULL default 'blue'",
 ];
 
 // Zyklische Farben

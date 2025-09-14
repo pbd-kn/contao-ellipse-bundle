@@ -1,3 +1,7 @@
+.ce_ellipse {
+  font-family: var(--pb-font-family-monospace);
+  font-size: 1rem;
+}
 .ellipse-form fieldset {
   display: flex;
   flex-wrap: wrap;
@@ -16,7 +20,7 @@
 }
 
 .ellipse-form .form-row label {
-  font-weight: bold;
+/*  font-weight: bold; */
   /* width: 150px; */
   margin-right: 0.5rem;
 }
