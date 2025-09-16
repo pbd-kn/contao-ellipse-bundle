@@ -3,14 +3,15 @@
   "description": "Contao Bundle zur Anzeige einer Ellipse mit SVG-Ausgabe",
   "type": "contao-bundle",
   "license": "MIT",
+  "keywords": ["contao", "contao-bundle"],
   "autoload": {
     "psr-4": {
       "PbdKn\\ContaoEllipseBundle\\": "src/"
     }
   },
   "require": {
-        "php": "^8.1",
-        "contao/core-bundle": "^4.13 || ^5.0"
+    "php": "^8.1",
+    "contao/core-bundle": "^4.13 || ^5.0"
   },
   "extra": {
     "contao-manager-plugin": "PbdKn\\ContaoEllipseBundle\\ContaoManager\\Plugin"
