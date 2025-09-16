@@ -8,6 +8,10 @@
       "PbdKn\\ContaoEllipseBundle\\": "src/"
     }
   },
+  "require": {
+        "php": "^8.1",
+        "contao/core-bundle": "^4.13 || ^5.0"
+  },
   "extra": {
     "contao-manager-plugin": "PbdKn\\ContaoEllipseBundle\\ContaoManager\\Plugin"
   }
