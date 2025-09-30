@@ -43,7 +43,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_umlauf'] = [
     'sql'       => "double NOT NULL default '0.999'",
 ];
 
-$GLOBALS['TL_DCA']['tl_content']['fields']['         '] = [
+$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_schrittweite_pkt'] = [
     'label'     => ['Schrittweite (S/S1)', 'Winkel-Schrittweite'],
     'exclude'   => true,
     'inputType' => 'text',
