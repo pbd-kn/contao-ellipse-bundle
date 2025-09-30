@@ -58,27 +58,27 @@ class EllipseController extends AbstractContentElementController
         $errors = [];
 
         // Parameter mit Validierung
-        $A = (int) $val('A', 'ellipse_major_axis', 400);
+        $A = (int) $val('A', 'ellipse_x', 400);
         if ($A < 1 || $A > 5000) {
             $errors[] = "A (Halbachse X) muss zwischen 1 und 5000 liegen. Wert wurde begrenzt.";
             $A = min(max($A, 1), 5000);
         }
 
-        $B = (int) $val('B', 'ellipse_minor_axis', 200);
+        $B = (int) $val('B', 'ellipse_y', 200);
         if ($B < 1 || $B > 5000) {
             $errors[] = "B (Halbachse Y) muss zwischen 1 und 5000 liegen. Wert wurde begrenzt.";
             $B = min(max($B, 1), 5000);
         }
 
-        $GRaw = (string) $val('G', 'ellipse_angle_limit', '1');  // default 1 Umdrehung
+        $GRaw = (string) $val('G', 'ellipse_umlauf', '1');  // default 1 Umdrehung
         $G = (float) str_replace(',', '.', $GRaw);
-        if ($G > 40) {   // angabe in grad
+        if ($G > 100) {   // angabe in grad
             $grenzWnkel = $G;
         } else {
             $grenzWnkel = $G*360;
         }
 
-        $Sraw = (string) $val('S', 'ellipse_step_size', '10'); //schritteite der Punkte
+        $Sraw = (string) $val('S', 'ellipse_schrittweite_pkt', '10'); //schritteite der Punkte
         $S = (float) str_replace(',', '.', $Sraw);
         if ($S < 1) {
             $errors[] = "S (Schrittweite) muss mindestens 1 sein. Wert wurde auf 1 gesetzt.";

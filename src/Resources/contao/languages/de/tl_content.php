@@ -1,13 +1,26 @@
 <?php
 
+
+// Legend
 $GLOBALS['TL_LANG']['tl_content']['ellipse_legend'] = 'Ellipse-Einstellungen';
 
-$GLOBALS['TL_LANG']['CTE']['ellipse_element'] = ['Ellipse-Demo', 'Zeigt eine Ellipse mit rotem Linienpfad.'];
-
-$GLOBALS['TL_LANG']['CTE']['Ellipse'] = 'Ellipse'; // Kategoriename (nur wenn du willst)
-
-$GLOBALS['TL_LANG']['CTE']['ce_ellipse'] = [
-    'Ellipse-Diagramm',   // Titel in der Auswahl
-    'Zeichnet eine Ellipse mit Achsen und Punkten.' // Beschreibung
+// Beispiel-Demo (kannst du auch entfernen, wenn du nur deine CE nutzen willst)
+$GLOBALS['TL_LANG']['CTE']['ellipse_element'] = [
+    'Ellipse-Demo',
+    'Zeigt eine Ellipse mit rotem Linienpfad.'
 ];
 
+// Kategorie in der CE-Auswahlliste
+$GLOBALS['TL_LANG']['CTE']['Ellipse'] = 'Ellipse';
+
+// Standard-Ellipse-CE
+$GLOBALS['TL_LANG']['CTE']['ce_ellipse'] = [
+    'Punkte auf Ellipse',
+    'Zeichnet eine Ellipse mit Achsen und Punkten auf der Ellipse.'
+];
+
+// Neues Krell-CE
+$GLOBALS['TL_LANG']['CTE']['ce_ellipse_krell'] = [
+    'Ellipse Krell',
+    'Simulation nach Krell-Algorithmus mit Punkten auf der Ellipse.'
+];

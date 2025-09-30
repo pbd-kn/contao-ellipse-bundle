@@ -232,7 +232,7 @@
 /* Popup Content */
 #helpContent-<?= $this->id ?> {
   background: #f5f5c0;
-  background-color: var(--pb-body-bg);;
+  background-color: var(--pb-body-bg);
 
   border: 1px solid #999;
   padding: 20px;
