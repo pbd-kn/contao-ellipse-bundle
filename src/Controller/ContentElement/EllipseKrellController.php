@@ -51,18 +51,14 @@ class EllipseKrellController extends AbstractContentElementController
         // === Parameter laden ===
         $A  = (float) $val('A', 'ellipse_x', 10.0);
         $B  = (float) $val('B', 'ellipse_y', 6.0);
-        $GRaw = (string) $val('G1', 'ellipse_umlauf', '1');  // default 1 Umdrehung
-        $G1 = (float) str_replace(',', '.', $GRaw);
-        if ($G1 > 100) {   // angabe in grad
-            $grenzWnkel = $G1;
-        } else {
-            $grenzWnkel = $G1*360;
-        }
-            $grenzWnkel = $G1*360;
-        $R  = (int)   $val('R', 'ellipse_circle_radius', 2);
-        $R1 = (float) $val('R1', 'ellipse_point_radius', 1.0);
+        $GRaw = (string) $val('Umdrehungen', 'ellipse_umlauf', '1');  // default 1 Umdrehung
+        $Umdrehungen = (float) str_replace(',', '.', $GRaw);
+        $grenzWinkel = $Umdrehungen*360;
+        $ReihenfolgePkt = (int) $val('ReihenfolgePkt', 'ellipse_point_sequence', 20);    // Reihenfolge in der die Punkte gezeichnet werden
+        $Schrittweite = (float) $val('Schrittweite', 'ellipse_schrittweite_pkt', M_PI / 18);
+        $Kreisradius  = (int)   $val('Kreisradius', 'ellipse_circle_radius', 2);
+        $Abstand = (float) $val('Abstand', 'ellipse_point_radius', 1.0);
         
-        $S1 = (float) $val('S1', 'ellipse_schrittweite_pkt', M_PI / 18);
 
         // === Checkboxen ===
         $templateSelectionActive = (bool) ((int) $request->query->get('templateSelectionActive_' . $currentCeId, $model->template_selection_active ? 1 : 0));
@@ -110,7 +106,7 @@ class EllipseKrellController extends AbstractContentElementController
         }
 
         // === Punkte berechnen ===
-        $points = $this->ellipseSimulation($A, $B, $R, $R1, $grenzWnkel, $S1, $debugline);
+        $points = $this->ellipseSimulation($A, $B, $Kreisradius, $Abstand, $grenzWinkel, $Schrittweite, $debugline);
 
         $errorMsg = null;
         $viewBox = "0 0 500 500"; // Default
@@ -129,7 +125,7 @@ class EllipseKrellController extends AbstractContentElementController
             $maxY = max($ys);
 
             // Dynamischer Sicherheitsabstand
-            $extra = $R1 + ($lineWidth ?? 1) / 2;
+            $extra = $Abstand + ($lineWidth ?? 1) / 2;
 
             $marginX = ($maxX - $minX) * 0.1 + $extra;
             $marginY = ($maxY - $minY) * 0.1 + $extra;
@@ -159,10 +155,14 @@ class EllipseKrellController extends AbstractContentElementController
 
         $template->A = $A;
         $template->B = $B;
-        $template->R = $R;
-        $template->R1 = $R1;
-        $template->G1 = $G1;
-        $template->S1 = $S1;
+        $template->Umdrehungen = $Umdrehungen;
+        $template->Schrittweite = $Schrittweite;
+
+        $template->ReihenfolgePkt = $ReihenfolgePkt;
+        
+        $template->Kreisradius = $Kreisradius;
+        $template->Abstand = $Abstand;
+
         $template->points = $points;
 
         $template->templateSelectionActive = $templateSelectionActive;
@@ -219,15 +219,21 @@ class EllipseKrellController extends AbstractContentElementController
      * Bestimme Tangente im Ellipsenpunkt.
      * Verschiebe den Punkt entlang der Tangente → Mittelpunkt eines Hilfskreises.
      * Führe eine Integration durch (elliptisch).
-     * Berechne vom Kreismittelpunkt aus einen Punkt auf dem Kreisradius $R1$.
+     * Berechne vom Kreismittelpunkt aus einen Punkt auf dem Kreisradius $Abstand.
      * Ergebnis: koordinierter Punkt der Simulation.
      */
 
-    private function ellipseSimulation(float $A, float $B, float $R, float $R1, float $grenzWnkel, float $S1, array &$debugline): array
+    private function ellipseSimulation(float $A, float $B, 
+        float $Kreisradius, // $R
+        float $Abstand,     // $R1
+        float $grenzWinkel, // $G1
+        float $Schrittweite, 
+        array &$debugline)
+        : array
     {
         $punkte = [];
-        if ($this->debug) $debugline[] = "startSimulation";
-        if ($R == 0.0) {
+        if ($this->debug) $debugline[] = "Start Berechnung grenzWinkel $grenzWinkel";
+        if ($Kreisradius == 0.0) {
             return [
                 ['error' => 'Fehler: Der Parameter R (umlaufenfer Kreis ellipse_circle_radius) darf nicht 0 sein.']
             ];
@@ -246,54 +252,65 @@ class EllipseKrellController extends AbstractContentElementController
                                                   */
         $N = 10;
         $I5 = 0.0;
+        $lfdnr=0;
+        for ($W2 = 0.0; $W2 < $grenzWinkel; $W2 += $Schrittweite) {    // Schleife über den Winkel in Grad
+            $lfdnr++;
+            $rad = deg2rad($W2); // EINMAL Umwandlung in Radiant
 
-for ($W2 = 0.0; $W2 < $grenzWnkel; $W2 += $S1) {    // Schleife über den Winkel in Grad
-    $rad = deg2rad($W2); // EINMAL Umwandlung in Radiant
-    if ($this->debug) $debugline[] = "grenzwinkel $grenzWnkel W2 $W2 rad $rad";   
+            // Ellipse Polarkoordinaten → kartesisch
+            $R2 = $B / sqrt(1 - $E * pow(cos($rad), 2));
+            $X1 = $R2 * cos($rad);
+            $Y1 = $R2 * sin($rad);
 
-    // Ellipse Polarkoordinaten → kartesisch
-    $R2 = $B / sqrt(1 - $E * pow(cos($rad), 2));
-    $X1 = $R2 * cos($rad);
-    $Y1 = $R2 * sin($rad);
+            // Steigung der Tangente & Richtung
+            $Q3 = ($A * $A * tan($rad)) / ($B * $B);
+            $Q2 = sqrt(1 + $Q3 * $Q3);
+            $F0 = atan($Q3);
 
-    // Steigung der Tangente & Richtung
-    $Q3 = ($A * $A * tan($rad)) / ($B * $B);
-    $Q2 = sqrt(1 + $Q3 * $Q3);
-    $F0 = atan($Q3);
+            if ($X1 <= 0) { // Falls Ellipsenpunkt links von der y-Achse:
+                $Q2 = -$Q2;
+                $F0 += M_PI;
+            }
 
-    if ($X1 <= 0) { // Falls Ellipsenpunkt links von der y-Achse:
-        $Q2 = -$Q2;
-        $F0 += M_PI;
-    }
+            // Verschiebung des Kreismittelpunkts
+            $M1 = $X1 + $Kreisradius / $Q2;
+            $N1 = $Y1 + $Kreisradius * ($Q3 / $Q2);
 
-    // Verschiebung des Kreismittelpunkts
-    $M1 = $X1 + $R / $Q2;
-    $N1 = $Y1 + $R * ($Q3 / $Q2);
+            // Numerische Integration
+            $H = ($rad - $U) / $N;       
+            $deltaArc = $this->up1($U, $H, $N, $E);  // Länge nur seit letztem Punkt
+            $I4 = $I5 + $deltaArc;                   // Gesamtlänge bis hier
 
-    // Numerische Integration
-    $H  = ($rad - $U) / $N;       // ACHTUNG: auch hier Radiant verwenden!
-    $I4 = $this->up1($U, $H, $N, $E);
-    $I4 += $I5;
+            // Drehwinkel für Punktberechnung
+            $F1 = $B * $I4 / $Kreisradius;
 
-    // Drehwinkel für Punktberechnung
-    $F1 = $B * $I4 / $R;
+            // Finaler Punkt
+            $X = $M1 - $Abstand * cos($F1 + $F0);
+            $Y = $N1 - $Abstand * sin($F1 + $F0);
+            $X=round($X,2);
+            $Y=round($Y,2);
+            $M1=round($M1,2);
+            $N1=round($N1,2);
+            $X1=round($X1,2);
+            $Y1=round($Y,2);
+            $deltaArc=round($deltaArc,2);
 
-    // Finaler Punkt
-    $X = $M1 - $R1 * cos($F1 + $F0);
-    $Y = $N1 - $R1 * sin($F1 + $F0);
 
-    $punkte[] = [
-        'x' => $X,
-        'y' => $Y,
-        'm1' => $M1,
-        'n1' => $N1,
-        'x1' => $X1,
-        'y1' => $Y1
-    ];
+            $punkte[] = [
+                'x' => $X,
+                'y' => $Y,
+                'm1' => $M1,
+                'n1' => $N1,
+                'x1' => $X1,
+                'y1' => $Y1,
+                'ellng' => $deltaArc
+            ];
+            if ($this->debug) $debugline[] = "$lfdnr: W2 $W2 rad ". round($rad,2) . " X: $X Y: $Y M1: $M1 N1: $N1 X1: $X1 Y1: $Y1 LNG: $deltaArc";   
 
-    $U  = $rad; // auch hier Radiant speichern
-    $I5 = $I4;
-}
+            $U  = $rad; // auch hier Radiant speichern
+            $I5 = $I4;
+        }
+        if ($this->debug) $debugline[] = "Ende Berechnung grenzWinkel";
 
         return $punkte;
     }

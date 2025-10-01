@@ -50,10 +50,7 @@
         </div>
         <div class="form-row">
           <label for="R_<?= $this->id ?>">Reihenfolge Pkt</label>
-          <input type="number" step="any"
-                 name="R_<?= $this->id ?>"
-                 id="R_<?= $this->id ?>"
-                 value="<?= $this->R ?>">
+          <input type="number" step="any" name="R_<?= $this->id ?>" id="R_<?= $this->id ?>" value="<?= $this->R ?>">
         </div>
         <div class="form-row">
           <label for="lineWidth_<?= $this->id ?>">Linienstärke</label>
