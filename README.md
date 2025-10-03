@@ -92,7 +92,7 @@ Im Frontend werden die Punkte in **SVG** ausgegeben:
 
 ---
 
-## ?? Hinweise
+## Hinweise
 
 - Beide Content-Elemente nutzen mathematische Formeln für die Punkterzeugung.  
 - Bei kleinen Schrittweiten entstehen viele Punkte ? Performance beachten.  
@@ -101,7 +101,7 @@ Im Frontend werden die Punkte in **SVG** ausgegeben:
 
 ---
 
-## ?? Installation
+## Installation
 
 Über Composer installieren:
 
@@ -114,7 +114,7 @@ Danach steht das Bundle im Contao-Backend als Content-Element zur Verfügung.
 
 ---
 
-## ?? Lizenz
+## Lizenz
 
 LGPL-3.0-or-later  
 (c) 2025 pbd-kn
