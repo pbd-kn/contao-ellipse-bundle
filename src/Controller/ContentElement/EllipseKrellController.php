@@ -184,35 +184,84 @@ class EllipseKrellController extends AbstractContentElementController
     // Hilfsfunktionen Ellipsenberechnung
     // ==================================
 
+    /**
+     * Integrandenfunktion für die numerische Integration.
+     * 
+     * Berechnet den Wert einer speziellen Funktion in Abhängigkeit
+     * von Winkel $w (in Radiant) und einem Parameter $e (Exzentrizität).
+     * 
+     * Mathematisch:
+     *     fnw(w, e) = sqrt( (1 - (2e - e²) * cos²(w)) / (1 - e * cos²(w))³ )
+     *
+     * @param float $w Winkel (z. B. im Bogenmaß, Radiant)
+     * @param float $e Exzentrizität oder anderer elliptischer Parameter
+     * @return float Ergebniswert der Funktion
+     */
     private function fnw(float $w, float $e): float
     {
+        // Nenner-Term hoch 3:
+        // (1 - e * cos²(w))³
+        // beschreibt den Einfluss der Exzentrizität auf die Form
         $h0 = pow(1 - $e * pow(cos($w), 2), 3);
+
+        // Zähler-Term:
+        // 1 - (2e - e²) * cos²(w)
+        // → eine Korrekturformel, die ebenfalls die Exzentrizität berücksichtigt
         $h1 = 1 - (2 * $e - $e * $e) * pow(cos($w), 2);
+
+        // Ergebnis: Wurzel aus (h1 / h0)
+        // wichtig: h0 > 0 muss gelten, sonst Division durch 0
         return sqrt($h1 / $h0);
     }
 
+
+    /**
+     * Numerische Integration nach der Gauß-Legendre-Methode (2-Punkte-Formel).
+     *
+     * @param float $u Startwert der Integration (Untere Grenze oder Basispunkt)
+     * @param float $h Schrittweite (Abstand der Integrationsintervalle)
+     * @param int   $n Anzahl der Teilintervalle (gerade Zahl vorausgesetzt)
+     * @param float $e Exzentrizität oder ein Parameter, der an fnw() weitergegeben wird
+     *
+     * @return float Näherungswert für das Integral
+     */
     private function up1(float $u, float $h, int $n, float $e): float
     {
+        // Zähler für die Anzahl der ausgeführten Intervalle
         $m  = 0;
+
+        // Akkumulator für die Integral-Summe
         $i4 = 0.0;
 
+        // -------------------------------
+        // Startpunkte für die erste Anwendung der 2-Punkte-Formel:
+        // Gauß-Legendre mit Knoten ±1/sqrt(3), auf [u, u+2h] verschoben
+        // a5 = linker Knotenpunkt, b5 = rechter Knotenpunkt
+        // -------------------------------
         $a5 = $u + $h * (1 - 1 / sqrt(3));
         $b5 = $u + $h * (1 + 1 / sqrt(3));
 
+        // Schleife über alle Intervalle
         while (true) {
+            // Werte der Integrandenfunktion fnw() an den beiden Knoten addieren
             $i4 += $this->fnw($a5, $e) + $this->fnw($b5, $e);
 
+            // Abbruchbedingung: wenn alle Intervalle bearbeitet sind
             if ($m == $n / 2 - 1) {
                 break;
             }
 
+            // Verschiebe die Knoten auf das nächste Intervall
             $a5 += 2 * $h;
             $b5 += 2 * $h;
+
             $m++;
         }
 
+        // Endergebnis: Summierte Werte * Schrittweite h
         return $i4 * $h;
     }
+
     
     /* Zusammenfassung:
      * Berechne Punkt auf Ellipse für Winkel $W2$.

@@ -15,6 +15,7 @@ use Symfony\Component\HttpFoundation\Response;
 class EllipseController extends AbstractContentElementController
 {
     public const TYPE = 'ce_ellipse';
+    private bool $debug = false;
 
     protected function getResponse($template, ContentModel $model, Request $request): Response
     {
@@ -37,6 +38,8 @@ class EllipseController extends AbstractContentElementController
             $wildcard->wildcard = $wildcardtxt;
             return new Response($wildcard->parse());
         }
+
+        $debugline = [];
 
         $currentCeId = $model->id;
 
@@ -70,27 +73,25 @@ class EllipseController extends AbstractContentElementController
             $B = min(max($B, 1), 5000);
         }
 
-        $GRaw = (string) $val('G', 'ellipse_umlauf', '1');  // default 1 Umdrehung
-        $G = (float) str_replace(',', '.', $GRaw);
-        if ($G > 100) {   // angabe in grad
-            $grenzWnkel = $G;
-        } else {
-            $grenzWnkel = $G*360;
-        }
+        $GRaw = (string) $val('Umdrehungen', 'ellipse_umlauf', '1');  // default 1 Umdrehung
+        $Umdrehungen = (float) str_replace(',', '.', $GRaw);
+        $grenzWinkel = $Umdrehungen*360;
 
         $Sraw = (string) $val('S', 'ellipse_schrittweite_pkt', '10'); //schritteite der Punkte
-        $S = (float) str_replace(',', '.', $Sraw);
-        if ($S < 1) {
+        $Schrittweite = (float) $val('Schrittweite', 'ellipse_schrittweite_pkt', '1');
+        $Schrittweite = (float) str_replace(',', '.', $Schrittweite);
+        if ($Schrittweite <= 0) {
             $errors[] = "S (Schrittweite) muss mindestens 1 sein. Wert wurde auf 1 gesetzt.";
-            $S = 1;
+            $Schrittweite = 1;
         }
 
+
         $maxPoints = 2000;
-        $numPoints = (int) ceil($grenzWnkel / $S);
+        $numPoints = (int) ceil($grenzWinkel / $Schrittweite);
         if ($numPoints > $maxPoints) {
             $errors[] = "Zu viele Punkte ($numPoints). Es werden nur $maxPoints Punkte gezeichnet.";
             $numPoints = $maxPoints;
-            $grenzWnkel = $S * $maxPoints;
+            $grenzWinkel = $Schrittweite * $maxPoints;
         }
 
         $R = (int) $val('R', 'ellipse_point_sequence', 20);    // Reihenfolge in der die Punkte gezeichnet werden
@@ -140,12 +141,8 @@ class EllipseController extends AbstractContentElementController
         
         $showEllipse = (bool) $request->query->get('showEllipse_' . $currentCeId, $model->showEllipse);
         $showCircle  = (bool) $request->query->get('showCircle_' . $currentCeId, $model->showCircle);
-
-        $circleSize = (int) $request->query->get('circleSize_' . $currentCeId, 0);
-        $textSize   = (int) $request->query->get('textSize_' . $currentCeId, 3);
-        if ($circleSize < 1) {
-            $circleSize = max(1, (int) round($textSize * 0.6));
-        }
+        if ($showEllipse || $showCircle) $this->debug = true;
+        else $this->debug = false;
 
         $margin = 20;
         $viewBox = sprintf("-%d -%d %d %d",
@@ -155,7 +152,7 @@ class EllipseController extends AbstractContentElementController
         );
 
         $points = [];
-        for ($angle = 0; $angle <= $grenzWnkel; $angle += $S) {
+        for ($angle = 0; $angle < $grenzWinkel; $angle += $Schrittweite) {
             $rad = deg2rad($angle);
             $x = $A * cos($rad);
             $y = $B * sin($rad);
@@ -172,16 +169,16 @@ class EllipseController extends AbstractContentElementController
         } else {
             $template->headlineHtml = '';
         }
+        if ($this->debug) $debugline[] = "Debug: count points: " . count($points) . " | showEllipse=" . ($showEllipse ? '1' : '0'). " | showCircle=" . ($showCircle ? '1' : '0');
+        $template->debugline = $debugline;        
 
         $template->A = $A;
         $template->B = $B;
         $template->R = $R;
-        $template->G = $G;
-        $template->S = $S;
+        $template->Umdrehungen = $Umdrehungen;
+        $template->Schrittweite = $Schrittweite;
         $template->showEllipse = $showEllipse;
         $template->showCircle  = $showCircle;
-        $template->circleSize  = $circleSize;
-        $template->textSize    = $textSize;
         $template->lineWidth   = $lineWidth;
         $template->lineMode    = $lineMode;
         $template->lineColor   = $lineColor;
