@@ -1,6 +1,6 @@
 # Contao Ellipse Bundle
 
-Dieses Bundle erweitert Contao um zwei Content-Elemente zur **Darstellung und Simulation von Ellipsen**.  
+Dieses Bundle erweitert Contao um zwei Content-Elemente zur **Darstellung von Grafiken die über Ellipsenerzeugt werden**.  
 Die Ellipsen werden mathematisch berechnet und als **SVG-Grafik** im Frontend ausgegeben.  
 Alle wichtigen Parameter lassen sich über das Contao-Backend einstellen oder optional im Frontend-Formular ändern.  
 
@@ -85,7 +85,6 @@ Im Frontend werden die Punkte in **SVG** ausgegeben:
 
 ## Beispiele
 
-[Ellipse Krell Funktionsweise](docs/explanation/ellipse_tangent_krell_with_text.jpg)
 
 
 
