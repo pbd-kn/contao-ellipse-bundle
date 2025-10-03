@@ -6,17 +6,17 @@ Alle wichtigen Parameter lassen sich über das Contao-Backend einstellen oder opt
 
 ---
 
-## ?? Inhalt
+## Inhalt
 
 Das Bundle stellt zwei Content-Elemente bereit:
 
-### ? Ellipse (klassisch, Punkte auf Ellipse)
+### Ellipse (klassisch, Punkte auf Ellipse)
 - Stellt eine Ellipse auf Basis der großen und kleinen Halbachse dar.  
 - Visualisiert Linien zwischen Punkten entlang der Ellipse.  
 - Parameter wie Schrittweite, Umläufe und Farben steuerbar.  
 - **Typ:** `EllipseController::TYPE`
 
-### ? Ellipse Krell (Kreis über Ellipse)
+### Ellipse Krell (Kreis über Ellipse)
 - Erweiterung der klassischen Ellipse.  
 - Zusätzlich läuft auf der Ellipse ein Kreis ab.
 - Übewr kreisradius und Abstand dses Kreiamittelpunkts werden die zu verbindenden Punkte bestimmt  
@@ -25,7 +25,7 @@ Das Bundle stellt zwei Content-Elemente bereit:
 
 ---
 
-## ?? Funktionen
+## Funktionen
 
 Die Berechnung der Ellipse erfolgt über die **Polarkoordinatenformel**:
 
@@ -48,7 +48,7 @@ Im Frontend werden die Punkte in **SVG** ausgegeben:
 
 ---
 
-## ?? Parameter und ihre Wirkung
+## Parameter und ihre Wirkung
 
 ### Geometrische Parameter
 
@@ -83,10 +83,10 @@ Im Frontend werden die Punkte in **SVG** ausgegeben:
 
 ---
 
-## ?? Beispiele
+## Beispiele
 
-*(Hier können Screenshots der Ellipsen-Ausgabe eingefügt werden, z. B. `docs/screenshots/ellipse.png`)*
-![?? Ellipse Krell Funktionsweise](docs/explantation/ellipse_tangent_krell_with_text.jpg)
+[Ellipse Krell Funktionsweise](docs/explanation/ellipse_tangent_krell_with_text.jpg)
+
 
 
 
