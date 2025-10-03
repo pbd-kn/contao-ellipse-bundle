@@ -58,23 +58,26 @@ Im Frontend werden die Punkte in **SVG** ausgegeben:
 | `ellipse_y (B)`               | Kleine Halbachse      | Streckung in Y-Richtung (Höhe) |
 | `ellipse_umlauf`              | Umläufe               | Anzahl der Durchläufe um die Ellipse |
 | `ellipse_schrittweite_pkt`    | Schrittweite (S)      | Abstand der Punkte eergibt die Anzahl Punkte die gezeichnez werden |
-| `ellipse_point_sequence (R)`  | Punktreihenfolge      | Gibt an in welcher Reihenfolge die Punkte verbunden werden
-
-| bei kreis auf Ellipse 
+| `ellipse_point_sequence (R)`  | Punktreihenfolge      | Gibt an in welcher Reihenfolge die Punkte verbunden werden |
+|                               |                       |
+| bei kreis auf Ellipse         |                       |                       |
 | `ellipse_circle_radius (R)`   | Kreisradius           | Größe der Hilfskreise |
 | `ellipse_point_radius (R1)`   | Punkt-Radius          | Größe der einzelnen Punkte |
 
 ### Linien & Farben
-
+| Feld                          | Beschreibung          | Wirkung 
+|-------------------------------|-----------------------|---------
 | `ellipse_line_thickness`      | Linienstärke          | Dicke der Linien |
 | `ellipse_line_mode`           | Linienmodus           | `fixed` = feste Farbe, `cycle` = wechselnde Farben |
 | `ellipse_line_color`          | Linienfarbe (fixed)   | Feste Linienfarbe |
 | `ellipse_cycle_color1..6`     | Zyklusfarben          | Farben, die bei `cycle` nacheinander verwendet werden 
-|                               |                       | die Farben können in englisch blue, Yellow oder #rrggbb angeben wewrdn
+|                               |                       | die Farben können in englisch blue, Yellow oder #rrggbb angeben werden |
 
 
 ### Anzeigeoptionen
-
+### Linien & Farben
+| Feld                          | Beschreibung          | Wirkung 
+|-------------------------------|-----------------------|---------
 | `template_selection_active`   | Eingbe Frontend       | im FE können die Parameter ewingeghen werden|
 | `ellipse_template`            | Template-Auswahl      | Auswahl eines eigenen `ce_ellipse_*` Templates |
 | `showEllipse`                 | Ellipse anzeigen      | für Debug zeigt zu Ellipse  noch ZusatzInfo an rote Umrandung sichtbar |
