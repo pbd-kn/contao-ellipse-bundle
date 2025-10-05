@@ -4,6 +4,7 @@
 // Legend
 $GLOBALS['TL_LANG']['tl_content']['ellipse_legend'] = 'Ellipse-Einstellungen';
 
+$GLOBALS['TL_LANG']['tl_content']['ellipse_x'] = ['Groﬂe Halbachse (A)', 'L‰nge der groﬂen Halbachse'];
 // Beispiel-Demo (kannst du auch entfernen, wenn du nur deine CE nutzen willst)
 $GLOBALS['TL_LANG']['CTE']['ellipse_element'] = [
     'Ellipse-Demo',

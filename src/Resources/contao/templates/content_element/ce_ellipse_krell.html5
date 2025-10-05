@@ -1,7 +1,7 @@
 <div class="ce_ellipse_krell" id="ce-<?= $this->id ?>">
   <?= $this->headlineHtml ?>
 
-  <!-- Formular -->
+  <!-- Formular zum Neuzeichnen -->
   <form method="get" id="ellipse-form-<?= $this->id ?>" class="ellipse-form">
       <input type="hidden" name="ceId" value="<?= $this->id ?>">
 
@@ -16,39 +16,35 @@
       </div>
 
       <?php if ($this->templateSelectionActive): ?>
+        <!-- Parameter -->
         <fieldset class="parameter-fieldset" id="parameter_<?= $this->id ?>">
-            <!-- Parameter-Eingaben -->
-            
             <legend>Parameter für Kreis auf Ellipse</legend>
-
             <div class="form-row"><label for="A_<?= $this->id ?>">Achse A</label>
                 <input type="number" step="any" name="A_<?= $this->id ?>" id="A_<?= $this->id ?>" value="<?= $this->A ?>">
             </div>
             <div class="form-row"><label for="B_<?= $this->id ?>">Achse B</label>
                 <input type="number" step="any" name="B_<?= $this->id ?>" id="B_<?= $this->id ?>" value="<?= $this->B ?>">
             </div>
-            <div class="form-row"><label for="Umdrehungen_<?= $this->id ?>">Umdrehungen auf der Ellipse</label>
+            <div class="form-row"><label for="Umdrehungen_<?= $this->id ?>">Umdrehungen</label>
                 <input type="number" step="any" name="Umdrehungen_<?= $this->id ?>" id="Umdrehungen_<?= $this->id ?>" value="<?= $this->Umdrehungen ?>">
             </div>
-            <div class="form-row"><label for="Schrittweite_<?= $this->id ?>">Schrittweite auf der Ellipse</label>
+            <div class="form-row"><label for="Schrittweite_<?= $this->id ?>">Schrittweite</label>
                 <input type="number" step="any" name="Schrittweite_<?= $this->id ?>" id="Schrittweite_<?= $this->id ?>" value="<?= $this->Schrittweite ?>">
             </div>
-            <div class="form-row"><label for="ReihenfolgePkt_<?= $this->id ?>">Reihenfolge der Punkte</label>
+            <div class="form-row"><label for="ReihenfolgePkt_<?= $this->id ?>">Reihenfolge</label>
                 <input type="number" step="any" name="ReihenfolgePkt_<?= $this->id ?>" id="ReihenfolgePkt_<?= $this->id ?>" value="<?= $this->ReihenfolgePkt ?>">
             </div>
-            <div class="form-row"><label for="Kreisradius_<?= $this->id ?>">Radius umlaufender Kreis</label>
+            <div class="form-row"><label for="Kreisradius_<?= $this->id ?>">Kreisradius</label>
                 <input type="number" step="any" name="Kreisradius_<?= $this->id ?>" id="Kreisradius_<?= $this->id ?>" value="<?= $this->Kreisradius ?>">
             </div>
-            <div class="form-row"><label for="Abstand_<?= $this->id ?>">Abstand Kreismittelpunkt von Ellipse</label>
+            <div class="form-row"><label for="Abstand_<?= $this->id ?>">Abstand</label>
                 <input type="number" step="any" name="Abstand_<?= $this->id ?>" id="Abstand_<?= $this->id ?>" value="<?= $this->Abstand ?>">
             </div>
-            <div class="form-row"> <label for="lineWidth_<?= $this->id ?>">Linienstärke</label>
+            <div class="form-row"><label for="lineWidth_<?= $this->id ?>">Linienstärke</label>
                 <input type="number" step="any" name="lineWidth_<?= $this->id ?>" id="lineWidth_<?= $this->id ?>" value="<?= $this->lineWidth ?>">
             </div>
-            <div class="form-row"><label for="lineMode_<?= $this->id ?>">Linien Mode</label>
-                <select name="lineMode_<?= $this->id ?>"
-                    id="lineMode_<?= $this->id ?>"
-                    onchange="toggleCycleColors(<?= $this->id ?>)">
+            <div class="form-row"><label for="lineMode_<?= $this->id ?>">Linienmodus</label>
+                <select name="lineMode_<?= $this->id ?>" id="lineMode_<?= $this->id ?>" onchange="toggleCycleColors(<?= $this->id ?>)">
                     <option value="fixed" <?= $this->lineMode=="fixed" ? "selected" : "" ?>>Feste Farbe</option>
                     <option value="cycle" <?= $this->lineMode=="cycle" ? "selected" : "" ?>>Zyklische Farben</option>
                 </select>
@@ -57,32 +53,34 @@
                 <input type="text" name="lineColor_<?= $this->id ?>" id="lineColor_<?= $this->id ?>" value="<?= $this->lineColor ?>">
             </div>
         </fieldset>
+
+        <!-- Zyklische Farben -->
         <fieldset class="color-fieldset" id="cycleColors_<?= $this->id ?>">
-        <legend>Zyklische Farben</legend>
-        <div class="color-grid">
-            <?php for ($i=1;$i<=6;$i++): 
-                $val = $this->cycleColors[$i-1] ?? '';
-            ?>
-            <div class="color-cell"> <label for="cycleColor<?= $i ?>_<?= $this->id ?>">Farbe <?= $i ?></label>
-              <input type="text" name="cycleColor<?= $i ?>_<?= $this->id ?>" id="cycleColor<?= $i ?>_<?= $this->id ?>" value="<?= $val ?>">
-            </div>
-          <?php endfor; ?>
-        </div>
-      </fieldset>
-      <fieldset>
-        <legend>Weitere Optionen z.B für Debug</legend>
-                <!-- Ellipse anzeigen -->
-          <div class="form-row"> <label for="showEllipse_<?= $this->id ?>">Ellipse anzeigen</label>
+          <legend>Zyklische Farben</legend>
+          <div class="color-grid">
+            <?php for ($i=1;$i<=6;$i++): $val = $this->cycleColors[$i-1] ?? ''; ?>
+              <div class="color-cell">
+                <label for="cycleColor<?= $i ?>_<?= $this->id ?>">Farbe <?= $i ?></label>
+                <input type="text" name="cycleColor<?= $i ?>_<?= $this->id ?>" id="cycleColor<?= $i ?>_<?= $this->id ?>" value="<?= $val ?>">
+              </div>
+            <?php endfor; ?>
+          </div>
+        </fieldset>
+
+        <!-- Optionen -->
+        <fieldset>
+          <legend>Weitere Optionen</legend>
+          <div class="form-row">
+              <label for="showEllipse_<?= $this->id ?>">Ellipse anzeigen</label>
               <input type="hidden" name="showEllipse_<?= $this->id ?>" value="0">
               <input type="checkbox" name="showEllipse_<?= $this->id ?>" id="showEllipse_<?= $this->id ?>" value="1" <?= $this->showEllipse ? 'checked' : '' ?>>
           </div>
-
-          <!-- Kreise anzeigen -->
-          <div class="form-row"> <label for="showCircle_<?= $this->id ?>">Kreise anzeigen</label>
+          <div class="form-row">
+              <label for="showCircle_<?= $this->id ?>">Kreise anzeigen</label>
               <input type="hidden" name="showCircle_<?= $this->id ?>" value="0">
               <input type="checkbox" name="showCircle_<?= $this->id ?>" id="showCircle_<?= $this->id ?>" value="1" <?= $this->showCircle ? 'checked' : '' ?>>
           </div>
-      </fieldset>
+        </fieldset>
       <?php endif; ?>
 
       <!-- Aktionen -->
@@ -94,46 +92,29 @@
       </div>
   </form>
 
+  <!-- Neues Formular: Darstellung speichern -->
+  <form method="post" class="ellipse-save-form" style="margin-top:1em;">
+      <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
+      <input type="text" name="info_<?= $this->id ?>" placeholder="Erklärung hinzufügen" style="width:70%;">
+      <button type="submit" name="saveEllipse_<?= $this->id ?>">Darstellung speichern</button>
+  </form>
 
-  <!-- SVG -->
-  <svg id="ellipse-svg-<?= $this->id ?>"
-       xmlns="http://www.w3.org/2000/svg"
-       width="100%"
-       height="500"
-       viewBox="<?= $this->viewBox ?>"
-       >
-  <!-- Definition der Pfeilspitze -->
-  <defs>
-    <marker id="arrowhead"
-            markerWidth="10" markerHeight="7"
-            refX="10" refY="3.5"
-            orient="auto"
-            markerUnits="strokeWidth">
-      <polygon points="0 0, 10 3.5, 0 7" fill="black" />
-    </marker>
-  </defs>
+  <!-- SVG-Ausgabe -->
+  <svg id="ellipse-svg-<?= $this->id ?>" xmlns="http://www.w3.org/2000/svg" width="100%" height="500" viewBox="<?= $this->viewBox ?>">
     <?php if (!empty($this->errorMsg)): ?>
-      <!-- Fehleranzeige im SVG -->
       <text x="20" y="40" fill="red" font-size="16"><?= $this->errorMsg ?></text>
     <?php else: ?>
       <?php
       $n = count($this->points);
       for ($i = 0; $i < $n; $i++) {
-            $j = ($i + $this->ReihenfolgePkt) % $n;
-            //$j = ($i+1) % $n;
-            $x1 = $this->points[$i]['x'];
-            $y1 = -$this->points[$i]['y'];
-            $x2 = $this->points[$j]['x'];
-            $y2 = -$this->points[$j]['y'];
-            $color = ($this->lineMode === "cycle") ? $this->cycleColors[$i % count($this->cycleColors)] : $this->lineColor;
-            $lineWidth = $this->lineWidth;
-            if ($this->showCircle) {
-                echo "<line x1='$x1' y1='$y1' x2='$x2' y2='$y2' stroke='$color' stroke-width='$lineWidth' marker-end='url(#arrowhead)' />";
-            } else {
-                echo "<line x1='$x1' y1='$y1' x2='$x2' y2='$y2' stroke='$color' stroke-width='$lineWidth' />";
-            }
-            //echo "<text x='".$x1."' y='".$y1."' font-size='5' font-family='Arial, sans-serif' fill='black'>i: $i j:$ j n: $n </text>";
-            //if ($i ==1 ) break;
+          $j = ($i + $this->ReihenfolgePkt) % $n;
+          $x1 = $this->points[$i]['x'];
+          $y1 = -$this->points[$i]['y'];
+          $x2 = $this->points[$j]['x'];
+          $y2 = -$this->points[$j]['y'];
+          $color = ($this->lineMode === "cycle") ? $this->cycleColors[$i % count($this->cycleColors)] : $this->lineColor;
+          $lineWidth = $this->lineWidth;
+          echo "<line x1='$x1' y1='$y1' x2='$x2' y2='$y2' stroke='$color' stroke-width='$lineWidth' />";
       }
 
       if ($this->showEllipse) {
@@ -142,27 +123,13 @@
 
       if ($this->showCircle) {
           foreach ($this->points as $idx => $p) {
-              $x = $p['x'];                   // koordinaten punkt
-              $y = -$p['y'];
-              $x1 = $p['x1'];                   // koordinaten Ellipse
-              $y1 = -$p['y1'];
-              $m1 = $p['m1'];                  // koorrdinaten Kreismitte
-              $n1 = -$p['n1'];
-              $ellng = round($p['ellng'],2);                   // bogenlänge vom letzen bis hierher
-              echo "<circle cx='".$x."' cy='".$y."' r='2' fill='none' stroke='black' stroke-width='$lineWidth'/>";
-              echo "<circle cx='".$m1."' cy='".$n1."' r='".$this->Kreisradius."' fill='none' stroke='green' stroke-width='$lineWidth'/>";
-              echo "<circle cx='".$m1."' cy='".$n1."' r='0.5' fill='green' stroke='green' stroke-width='$lineWidth'/>";
-              echo "<circle cx='".$x1."' cy='".$y1."' r='2' fill='purple' stroke='purple' stroke-width='$lineWidth'/>";
-
-              if (count($this->points) <= 200) {
-                  echo "<text x='".$x."' y='".$y."' font-size='5' font-family='Arial, sans-serif' fill='black'>P: " . ($idx+1) . "</text>";
-                  echo "<text x='".$m1."' y='".$n1."' font-size='5' font-family='Arial, sans-serif' fill='green'>K: " . ($idx+1) . "</text>";
-                    echo "<text x='{$x1}' y='{$y1}' font-size='5' font-family='Arial, sans-serif' fill='purple'>
-                            <tspan x='{$x1}' dy='0'>.</tspan>
-                            <tspan x='{$x1}' dy='6'>E: " . ($idx+1) . "</tspan>
-                            <tspan x='{$x1}' dy='6'>lng: " . $ellng . "</tspan>
-                        </text>";
-              }
+              $x = $p['x']; $y = -$p['y'];
+              $x1 = $p['x1']; $y1 = -$p['y1'];
+              $m1 = $p['m1']; $n1 = -$p['n1'];
+              echo "<circle cx='$x' cy='$y' r='2' fill='none' stroke='black' stroke-width='$lineWidth'/>";
+              echo "<circle cx='$m1' cy='$n1' r='".$this->Kreisradius."' fill='none' stroke='green' stroke-width='$lineWidth'/>";
+              echo "<circle cx='$m1' cy='$n1' r='0.5' fill='green' stroke='green' stroke-width='$lineWidth'/>";
+              echo "<circle cx='$x1' cy='$y1' r='2' fill='purple' stroke='purple' stroke-width='$lineWidth'/>";
           }
       }
       ?>
@@ -170,33 +137,30 @@
   </svg>
 
   <!-- Debug -->
-
-  <?php
-  if (count($this->debugline) > 0) {
-    echo "<div class='debug'>";
-    foreach ($this->debugline as $l) echo "$l<br>";
-    echo "</div>";
-  }
-  ?>
+  <?php if (count($this->debugline) > 0): ?>
+    <div class="debug">
+      <?php foreach ($this->debugline as $l) echo "$l<br>"; ?>
+    </div>
+  <?php endif; ?>
 
   <!-- Hilfe-Popup -->
   <div id="help-popup-<?= $this->id ?>" class="help-popup" onclick="toggleHelp(<?= $this->id ?>, false)">
     <div id="help-content-<?= $this->id ?>" class="help-content" onclick="event.stopPropagation()">
       <h3>Hilfe zu den Parametern</h3>
-      Änderungen werden erst mit "Neu zeichen" übernommen.
+      <p>Änderungen werden erst mit "Neu zeichnen" übernommen.</p>
       <ul>
-        <li><b>A</b>: Halbachse A (dez.)</li>
-        <li><b>B</b>: Halbachse B (dez.)</li>
-        <li><b>Umdrehungen ..</b>: Anzahl der Umdrehungen auf der Ellipse (dez.)</li>
-        <li><b>Schrittweite ..</b>: Abstand der Punkte auf der Ellipse (dez.)</li>
-        <li><b>Reihenfolge ..</b>: Reihenfolge wie die Punkte verbunden werden (dez.)</li>
-        <li><b>Radius ..</b>: Radius des abrollenden Kreises (dez.)</li>
-        <li><b>Abstand ..</b>: Abstand des Kreismittelpunkts vom Ellipsenrand (dez.)</li>
-        <li><b>Linienstärke</b>: Dicke der Linien (dez.)</li>
-        <li><b>LinienModus</b>: Eine feste oder mehrere Linienfarben</li>
-        <li><b>Farbe bei fest</b>: Linienfarbe (engl.  oder  #rrggbb)</li>
-        <li><b>Zyklische Farben</b>: Die Linien werden in der Reihenfolge verschiedenfarbig ausgegeben. leer wird übersprungen </li>
-        <li><b>Debug</b>: Ellipse, bzw. Kreise anzeigen. zusätzlich wird noch Debug Info ausgegeben </li>
+        <li><b>A</b>: Halbachse A</li>
+        <li><b>B</b>: Halbachse B</li>
+        <li><b>Umdrehungen</b>: Anzahl der Umdrehungen</li>
+        <li><b>Schrittweite</b>: Abstand der Punkte</li>
+        <li><b>Reihenfolge</b>: Wie Punkte verbunden werden</li>
+        <li><b>Kreisradius</b>: Radius des abrollenden Kreises</li>
+        <li><b>Abstand</b>: Abstand vom Ellipsenrand</li>
+        <li><b>Linienstärke</b>: Dicke der Linien</li>
+        <li><b>Linienmodus</b>: Fest oder Zyklisch</li>
+        <li><b>Farbe</b>: Linienfarbe</li>
+        <li><b>Zyklische Farben</b>: Farben im Wechsel</li>
+        <li><b>Debug</b>: Zusatzinfos</li>
       </ul>
       <button onclick="toggleHelp(<?= $this->id ?>, false)">Schließen</button>
     </div>
@@ -215,10 +179,10 @@
   z-index: 9999;
 }
 .help-content {
-  background-color: var(--pb-body-bg);
+  background-color: var(--pb-body-bg, white);
   padding: 20px;
   border-radius: 8px;
-  max-width: 1024;
+  max-width: 800px;
   box-shadow: 0 0 15px rgba(0,0,0,0.3);
 }
 </style>

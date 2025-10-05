@@ -10,6 +10,7 @@ use Contao\StringUtil;
 use Contao\System;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Contao\Database;
 
 #[AsContentElement(EllipseController::TYPE, category: 'Ellipse', template: 'ce_ellipse')]
 class EllipseController extends AbstractContentElementController
@@ -19,7 +20,6 @@ class EllipseController extends AbstractContentElementController
 
     protected function getResponse($template, ContentModel $model, Request $request): Response
     {
-        // Gewähltes Template oder Fallback
         $templateName = $model->ellipse_template ?: 'ce_ellipse';
 
         // --- Backend Wildcard ---
@@ -29,164 +29,131 @@ class EllipseController extends AbstractContentElementController
             $wildcard->title = StringUtil::deserialize($model->headline)['value'] ?? 'Ellipse';
             $wildcard->id = $model->id;
             $wildcard->href = 'contao?do=themes&table=tl_content&id=' . $model->id;
-
-            $be_id = $model->ellipse_be_id;
-
-            $wildcardtxt  = "### Ellipse Template: $templateName ###<br>";
-            $wildcardtxt .= "ID: $be_id";
-
-            $wildcard->wildcard = $wildcardtxt;
+            $wildcard->wildcard = "### Ellipse Template: $templateName ###<br>ID: " . $model->id;
             return new Response($wildcard->parse());
         }
 
         $debugline = [];
-
         $currentCeId = $model->id;
 
-        // Hilfsfunktion: GET (mit ID) > DB > Default
+        // Hilfsfunktion: GET > DB > Default
         $val = function(string $getKey, string $dbField, $default = null) use ($request, $model, $currentCeId) {
             $keyWithId = $getKey . '_' . $currentCeId;
             $fromGetWithId = $request->query->get($keyWithId);
             if ($fromGetWithId !== null && $fromGetWithId !== '') {
                 return $fromGetWithId;
             }
-
             if ($model->{$dbField} !== null && $model->{$dbField} !== '') {
                 return $model->{$dbField};
             }
-
             return $default;
         };
 
         $errors = [];
 
-        // Parameter mit Validierung
+        // === Parameter ===
         $A = (int) $val('A', 'ellipse_x', 400);
-        if ($A < 1 || $A > 5000) {
-            $errors[] = "A (Halbachse X) muss zwischen 1 und 5000 liegen. Wert wurde begrenzt.";
-            $A = min(max($A, 1), 5000);
-        }
-
         $B = (int) $val('B', 'ellipse_y', 200);
-        if ($B < 1 || $B > 5000) {
-            $errors[] = "B (Halbachse Y) muss zwischen 1 und 5000 liegen. Wert wurde begrenzt.";
-            $B = min(max($B, 1), 5000);
-        }
 
-        $GRaw = (string) $val('Umdrehungen', 'ellipse_umlauf', '1');  // default 1 Umdrehung
+        $GRaw = (string) $val('Umdrehungen', 'ellipse_umlauf', '1');
         $Umdrehungen = (float) str_replace(',', '.', $GRaw);
-        $grenzWinkel = $Umdrehungen*360;
+        $grenzWinkel = $Umdrehungen * 360;
 
-        $Sraw = (string) $val('S', 'ellipse_schrittweite_pkt', '10'); //schritteite der Punkte
-        $Schrittweite = (float) $val('Schrittweite', 'ellipse_schrittweite_pkt', '1');
-        $Schrittweite = (float) str_replace(',', '.', $Schrittweite);
+        $Schrittweite = (float) str_replace(',', '.', (string) $val('Schrittweite', 'ellipse_schrittweite_pkt', '1'));
         if ($Schrittweite <= 0) {
-            $errors[] = "S (Schrittweite) muss mindestens 1 sein. Wert wurde auf 1 gesetzt.";
+            $errors[] = "Schrittweite muss > 0 sein. Wurde auf 1 gesetzt.";
             $Schrittweite = 1;
         }
 
+        $R = (int) $val('R', 'ellipse_point_sequence', 20);
 
-        $maxPoints = 2000;
-        $numPoints = (int) ceil($grenzWinkel / $Schrittweite);
-        if ($numPoints > $maxPoints) {
-            $errors[] = "Zu viele Punkte ($numPoints). Es werden nur $maxPoints Punkte gezeichnet.";
-            $numPoints = $maxPoints;
-            $grenzWinkel = $Schrittweite * $maxPoints;
-        }
-
-        $R = (int) $val('R', 'ellipse_point_sequence', 20);    // Reihenfolge in der die Punkte gezeichnet werden
-
-        $lineWidthRaw = (string) $val('lineWidth', 'ellipse_line_thickness', '3');
-        $lineWidth = (float) str_replace(',', '.', $lineWidthRaw);
-
+        $lineWidth = (float) str_replace(',', '.', (string) $val('lineWidth', 'ellipse_line_thickness', '3'));
         $lineMode = (string) $val('lineMode', 'ellipse_line_mode', 'fixed');
 
         $lineColor = '';
         $cycleColors = [];
 
         if ($lineMode === 'fixed') {
-            // feste Farbe
             $lineColor = (string) $val('lineColor', 'ellipse_line_color', 'red');
         } else {
-            // zyklische Farben: GET > DB > Default
             for ($i = 1; $i <= 6; $i++) {
                 $key = "cycleColor{$i}_" . $currentCeId;
                 if ($request->query->has($key)) {
-                    // explizit GET – auch wenn leer
                     $color = trim((string) $request->query->get($key));
-                    if ($color !== '') {
-                        $cycleColors[] = $color;
-                    }
+                    if ($color !== '') $cycleColors[] = $color;
                 } else {
-                    // nur wenn kein GET vorhanden, DB prüfen
                     $dbField = "ellipse_cycle_color{$i}";
                     $color = (string) ($model->{$dbField} ?? '');
-                    if (trim($color) !== '') {
-                        $cycleColors[] = trim($color);
-                    }
+                    if (trim($color) !== '') $cycleColors[] = trim($color);
                 }
             }
-
-            // Wenn keine gesetzt: Standardfarben
             if (count($cycleColors) === 0) {
                 $cycleColors = ["blue", "green", "red", "orange", "purple", "brown"];
             }
-
-            // Ellipse-Farbe auf erste Zyklusfarbe setzen
             $lineColor = $cycleColors[0];
         }
 
-        // Checkboxen: GET-Werte (0/1) haben Vorrang, sonst DB
         $templateSelectionActive = (bool) $request->query->get('templateSelectionActive_' . $currentCeId, $model->template_selection_active);
-        
         $showEllipse = (bool) $request->query->get('showEllipse_' . $currentCeId, $model->showEllipse);
         $showCircle  = (bool) $request->query->get('showCircle_' . $currentCeId, $model->showCircle);
-        if ($showEllipse || $showCircle) $this->debug = true;
-        else $this->debug = false;
+        $this->debug = $showEllipse || $showCircle;
 
+        // ViewBox
         $margin = 20;
-        $viewBox = sprintf("-%d -%d %d %d",
-            $A + $margin, $B + $margin,
-            2 * ($A + $margin),
-            2 * ($B + $margin)
-        );
+        $viewBox = sprintf("-%d -%d %d %d", $A + $margin, $B + $margin, 2 * ($A + $margin), 2 * ($B + $margin));
 
+        // Punkte
         $points = [];
         for ($angle = 0; $angle < $grenzWinkel; $angle += $Schrittweite) {
             $rad = deg2rad($angle);
-            $x = $A * cos($rad);
-            $y = $B * sin($rad);
-            $points[] = ['x' => $x, 'y' => $y];
+            $points[] = ['x' => $A * cos($rad), 'y' => $B * sin($rad)];
         }
 
+        // === Speicherung in tl_ellipse_save ===
+        if ($request->getMethod() === 'POST' && $request->request->get('FORM_SUBMIT') === 'ellipse_save_'.$currentCeId) {
+            $info = (string) $request->request->get('info_'.$currentCeId);
+            $params = [
+                'A' => $A,
+                'B' => $B,
+                'Umdrehungen' => $Umdrehungen,
+                'Schrittweite' => $Schrittweite,
+                'R' => $R,
+                'lineWidth' => $lineWidth,
+                'lineMode' => $lineMode,
+                'lineColor' => $lineColor,
+                'cycleColors' => $cycleColors,
+                'showEllipse' => $showEllipse,
+                'showCircle' => $showCircle
+            ];
+            Database::getInstance()->prepare("
+                INSERT INTO tl_ellipse_save
+                (tstamp, ce_type, ce_id, data, info)
+                VALUES (?, ?, ?, ?, ?)
+            ")->execute(time(), self::TYPE, $currentCeId, json_encode($params), $info);
+        }
+
+        // Template befüllen
         $template = $this->createTemplate($model, $templateName);
+        $template->headlineHtml = $model->headline
+            ? sprintf('<%1$s>%2$s</%1$s>', StringUtil::deserialize($model->headline)['unit'] ?? 'h2', StringUtil::deserialize($model->headline)['value'] ?? '')
+            : '';
 
-        if ($model->headline) {
-            $hl = StringUtil::deserialize($model->headline);
-            $headlineTag = $hl['unit'] ?: 'h2';
-            $headlineText = $hl['value'] ?? '';
-            $template->headlineHtml = sprintf('<%1$s>%2$s</%1$s>', $headlineTag, $headlineText);
-        } else {
-            $template->headlineHtml = '';
-        }
-        if ($this->debug) $debugline[] = "Debug: count points: " . count($points) . " | showEllipse=" . ($showEllipse ? '1' : '0'). " | showCircle=" . ($showCircle ? '1' : '0');
-        $template->debugline = $debugline;        
-
+        $template->debugline = $debugline;
         $template->A = $A;
         $template->B = $B;
         $template->R = $R;
         $template->Umdrehungen = $Umdrehungen;
         $template->Schrittweite = $Schrittweite;
         $template->showEllipse = $showEllipse;
-        $template->showCircle  = $showCircle;
-        $template->lineWidth   = $lineWidth;
-        $template->lineMode    = $lineMode;
-        $template->lineColor   = $lineColor;
+        $template->showCircle = $showCircle;
+        $template->lineWidth = $lineWidth;
+        $template->lineMode = $lineMode;
+        $template->lineColor = $lineColor;
         $template->cycleColors = $cycleColors;
-        $template->viewBox     = $viewBox;
-        $template->points      = $points;
+        $template->viewBox = $viewBox;
+        $template->points = $points;
         $template->templateSelectionActive = $templateSelectionActive;
-        $template->errors      = $errors;
+        $template->errors = $errors;
 
         return $template->getResponse();
     }
