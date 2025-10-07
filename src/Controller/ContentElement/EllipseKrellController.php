@@ -21,6 +21,8 @@ class EllipseKrellController extends AbstractContentElementController
 
     protected function getResponse($template, ContentModel $model, Request $request): Response
     {
+        $templateName = $model->ellipse_template ?: 'ce_ellipse_krell';
+
         // --- Backend Wildcard ---
         $scope = System::getContainer()->get('request_stack')?->getCurrentRequest()?->attributes?->get('_scope');
         if ('backend' === $scope) {
@@ -55,7 +57,7 @@ class EllipseKrellController extends AbstractContentElementController
         $grenzWinkel = $Umdrehungen*360;
         $ReihenfolgePkt = (int) $val('ReihenfolgePkt', 'ellipse_point_sequence', 20);    
         $Schrittweite = (float) $val('Schrittweite', 'ellipse_schrittweite_pkt', M_PI / 18);
-        $Kreisradius  = (int)   $val('Kreisradius', 'ellipse_circle_radius', 2);
+        $Kreisradius  = (float)   $val('Kreisradius', 'ellipse_circle_radius', 2);
         $Abstand = (float) $val('Abstand', 'ellipse_point_radius', 1.0);
 
         // === Checkboxen ===
@@ -126,11 +128,6 @@ class EllipseKrellController extends AbstractContentElementController
             );
         }
 
-        // === Speicherung der aktuellen Darstellung ===
-        if ($request->get('saveEllipse_' . $currentCeId)) {
-            $userId = 0;
-            if (FE_USER_LOGGED_IN && ($user = FrontendUser::getInstance())) {
-                $userId = (int) $user->id;
                 /* $user->id              // ID des Benutzers
                  * $user->username        // Benutzername
                  * $user->firstname       // Vorname
@@ -147,45 +144,86 @@ class EllipseKrellController extends AbstractContentElementController
                  *  }
                  * }
 
-*/
-            }
+                */
+// ------------------------------------------------------------
+// 🧩 Speicherung der aktuellen Ellipse-Krell-Darstellung in tl_ellipse_save
+// ------------------------------------------------------------
+if ($request->getMethod() === 'POST' && $request->request->get('FORM_SUBMIT') === 'ellipse_save_' . $model->id) {
 
-            $params = [
-                'A' => $A,
-                'B' => $B,
-                'Umdrehungen' => $Umdrehungen,
-                'Schrittweite' => $Schrittweite,
-                'ReihenfolgePkt' => $ReihenfolgePkt,
-                'Kreisradius' => $Kreisradius,
-                'Abstand' => $Abstand,
-                'points' => $points,
-                'viewBox' => $viewBox,
-                'lineMode' => $lineMode,
-                'lineColor' => $lineColor,
-                'cycleColors' => $cycleColors,
-                'lineWidth' => $lineWidth,
-                'options' => [
-                    'showEllipse' => $showEllipse,
-                    'showCircle'  => $showCircle,
-                ]
-            ];
+    // 📝 1. Info-Text aus dem Formular
+    $infoText = trim((string) $request->request->get('info_' . $model->id));
 
-            Database::getInstance()->prepare("
-                INSERT INTO tl_ellipse_save
-                    (tstamp, memberId, ceType, ceId, saveData, info)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ")->execute(
-                time(),
-                $userId,
-                $model->type,
-                $model->id,
-                json_encode($params, JSON_PRETTY_PRINT),
-                $request->get('info_' . $currentCeId) ?: 'Ellipse gespeichert'
-            );
+    // 👤 2. Eingeloggten Frontend-Benutzer holen
+    $memberId = 0;
+    if (defined('FE_USER_LOGGED_IN') && FE_USER_LOGGED_IN && class_exists(\Contao\FrontendUser::class)) {
+        $user = \Contao\FrontendUser::getInstance();
+        if ($user !== null && $user->id) {
+            $memberId = (int) $user->id;
         }
+    }
 
+    // 📦 3. Parameter serialisieren
+    $saveData = json_encode([
+        'A'             => $A,
+        'B'             => $B,
+        'Umdrehungen'   => $Umdrehungen,
+        'Schrittweite'  => $Schrittweite,
+        'ReihenfolgePkt'=> $ReihenfolgePkt ?? 0,
+        'Kreisradius'   => $Kreisradius,
+        'Abstand'       => $Abstand,
+        'Linienmodus'   => $lineMode,
+        'Linienfarbe'   => $lineColor,
+        'Zyklusfarben'  => $cycleColors,
+        'Linienstärke'  => $lineWidth,
+        'showEllipse'   => $showEllipse,
+        'showCircle'    => $showCircle,
+        'viewBox'       => $viewBox,
+    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+
+    // 🧭 4. DB-Verbindung holen
+    $db = \Contao\System::getContainer()->get('database_connection');
+
+    // 🔍 5. Prüfen, ob identische Parameter schon gespeichert sind
+    $existing = $db->fetchAssociative("
+        SELECT id, info, tstamp
+        FROM tl_ellipse_save
+        WHERE member_id = ?
+          AND ce_type = ?
+          AND ce_id = ?
+          AND save_data = ?
+        LIMIT 1
+    ", [
+        $memberId,
+        self::TYPE,
+        $model->id,
+        $saveData
+    ]);
+
+    if ($existing) {
+        // ⚠️ Bereits identische Speicherung vorhanden
+        $template->saveSuccess = false;
+        $template->saveMessage = sprintf(
+            '⚠️ Diese Ellipse wurde bereits gespeichert (unter "%s" am %s).',
+            $existing['info'] ?: 'ohne Beschreibung',
+            date('d.m.Y H:i', (int) $existing['tstamp'])
+        );
+    } else {
+        // 💾 Neu speichern
+        $db->insert('tl_ellipse_save', [
+            'tstamp'     => time(),
+            'member_id'  => $memberId,
+            'ce_type'    => self::TYPE,     // z. B. ce_ellipse_krell
+            'ce_id'      => $model->id,
+            'info'       => $infoText ?: 'ohne Beschreibung',
+            'save_data'  => $saveData,
+        ]);
+
+        $template->saveSuccess = true;
+        $template->saveMessage = '✅ Ellipse wurde erfolgreich gespeichert.';
+    }
+}
         // === Template befüllen ===
-        $template = $this->createTemplate($model, 'ce_ellipse_krell');
+        $template = $this->createTemplate($model, $templateName);
         if ($this->debug) $debugline[] = "Debug: count points: " . count($points) . " | showEllipse=" . ($showEllipse ? '1' : '0'). " | showCircle=" . ($showCircle ? '1' : '0');
         $template->debugline = $debugline;        
 
@@ -258,10 +296,10 @@ class EllipseKrellController extends AbstractContentElementController
         : array
     {
         $punkte = [];
-        if ($this->debug) $debugline[] = "Start Berechnung grenzWinkel $grenzWinkel";
+        if ($this->debug) $debugline[] = "Start Berechnung grenzWinkel $grenzWinkel Kreisradius $Kreisradius";
         if ($Kreisradius == 0.0) {
             return [
-                ['error' => 'Fehler: Der Parameter R (ellipse_circle_radius) darf nicht 0 sein.']
+                ['error' => 'Fehler: Der Parameter Kreisradius (ellipse_circle_radius) darf nicht 0 sein.']
             ];
         }
 

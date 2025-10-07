@@ -92,13 +92,35 @@
       </div>
   </form>
 
-  <!-- Neues Formular: Darstellung speichern -->
-  <form method="post" class="ellipse-save-form" style="margin-top:1em;">
-      <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
-      <input type="text" name="info_<?= $this->id ?>" placeholder="Erklärung hinzufügen" style="width:70%;">
-      <button type="submit" name="saveEllipse_<?= $this->id ?>">Darstellung speichern</button>
-  </form>
+<!-- Neues Formular: Darstellung speichern -->
+<form method="post" class="ellipse-save-form" style="margin-top:1em;">
+    <!-- CSRF-Schutz (Contao 5-kompatibel) -->
+    <?php echo '<input type="hidden" name="REQUEST_TOKEN" value="' . \Contao\System::getContainer()->get("contao.csrf.token_manager")->getDefaultTokenValue() . '">'; ?>
 
+    <!-- Formularkennung für Contao -->
+    <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
+    <input type="hidden" name="ceId" value="<?= $this->id ?>">
+
+    <!-- Eingabefeld für Zusatzinfo -->
+    <input type="text"
+           name="info_<?= $this->id ?>"
+           placeholder="Erklärung hinzufügen"
+           style="width:70%;">
+
+    <!-- Absende-Button -->
+    <button type="submit"
+            name="saveEllipse_<?= $this->id ?>"
+            class="button-save">
+        Darstellung speichern
+    </button>
+</form>
+<!-- Erfolgsmeldung -->
+<?php if (isset($this->saveMessage)): ?>
+  <p class="<?= $this->saveSuccess ? 'save-ok' : 'save-warning' ?>">
+    <?= $this->saveMessage ?>
+  </p>
+<?php endif; ?>
+VOR SVG
   <!-- SVG-Ausgabe -->
   <svg id="ellipse-svg-<?= $this->id ?>" xmlns="http://www.w3.org/2000/svg" width="100%" height="500" viewBox="<?= $this->viewBox ?>">
     <?php if (!empty($this->errorMsg)): ?>
