@@ -24,7 +24,9 @@
 
         <!-- Formular zum Neuzeichnen -->
         <form method="get" id="ellipse-form-<?= $this->id ?>" class="ellipse-form">
+            <div class="dialog-drag-handle">Ziehen zum Verschieben</div>
             <h3>Parameter anpassen</h3>
+            
             <input type="hidden" name="ceId" value="<?= $this->id ?>">
             <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="<?= $this->templateSelectionActive ? 1 : 0 ?>">
             <!-- Parameter -->
@@ -93,7 +95,7 @@
             <!-- Aktionen -->
             <div class="form-actions">
                 <button type="submit" onclick="this.closest('dialog').close()">Neu zeichnen</button>
-                <button type="button" onclick="closeEllipseDialog(<?= $this->id ?>)">Schließen</button>
+                <button type="button" onclick="closeEllipseDialog(<?= $this->id ?>)">Konfiguration Schließen</button>
                 <button type="button" onclick="toggleHelp(<?= $this->id ?>, true)">❓ Hilfe</button>
 
             </div>
@@ -244,6 +246,15 @@
 }
 </style>
 <script>
+function submitEllipseForm(id) {
+  const dlg = document.getElementById("ellipseDialog_" + id);
+  const form = document.getElementById("ellipseForm_" + id);
+  if (!form) return;
+  if (!dlg.open) dlg.show();
+  form.submit();
+  dlg.close();
+}
+
 function openHelp<?= $this->id ?>() {
   document.getElementById('help-popup-<?= $this->id ?>').style.display = 'flex';
 }
@@ -283,7 +294,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const dlg = document.getElementById("ellipseDialog_<?= $this->id ?>");
     const active = <?= $this->templateSelectionActive ? 'true' : 'false' ?>;
     if (active && dlg && !dlg.open) {
-        setTimeout(() => dlg.showModal(), 100);
+        setTimeout(() => dlg.show(), 100);
     }
 });
 
@@ -303,4 +314,37 @@ function closeEllipseDialog(id) {
     url.searchParams.set("templateSelectionActive_" + id, "0");
     window.location.href = url.toString();
 }
+// --- Dialog per Maus verschieben ---
+function makeDialogDraggable(dialogId, handleSelector = '.dialog-drag-handle') {
+    const dlg = document.getElementById(dialogId);
+    const handle = dlg.querySelector(handleSelector);
+    if (!dlg || !handle) return;
+
+    let offsetX = 0, offsetY = 0, dragging = false;
+
+    handle.style.cursor = 'move';
+
+    handle.addEventListener('mousedown', e => {
+        dragging = true;
+        offsetX = e.clientX - dlg.offsetLeft;
+        offsetY = e.clientY - dlg.offsetTop;
+        dlg.style.position = 'fixed';
+        dlg.style.margin = 0;
+        e.preventDefault();
+    });
+
+    document.addEventListener('mousemove', e => {
+        if (!dragging) return;
+        dlg.style.left = (e.clientX - offsetX) + 'px';
+        dlg.style.top  = (e.clientY - offsetY) + 'px';
+    });
+
+    document.addEventListener('mouseup', () => dragging = false);
+}
+
+// Beim Laden aktivieren
+document.addEventListener("DOMContentLoaded", () => {
+    makeDialogDraggable("ellipseDialog_<?= $this->id ?>");
+});
+
 </script>
