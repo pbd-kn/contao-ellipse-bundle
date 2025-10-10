@@ -12,9 +12,9 @@ use Symfony\Component\HttpFoundation\Request;
 class EllipseParameterHelper
 {
     /**
-     * Liest alle gew�nschten Parameter in einem Rutsch.
+     * Liest alle gewünschten Parameter in einem Rutsch.
      *
-     * @param Request      $request     Symfony Request (f�r GET)
+     * @param Request      $request     Symfony Request (für GET)
      * @param ContentModel $model       Contao ContentModel
      * @param int|string   $ceId        ID des aktuellen ContentElements
      * @param array        $definitions Array ['GET-Key' => ['field' => '...', 'default' => x, 'type' => 'int', ...]]
@@ -49,7 +49,7 @@ class EllipseParameterHelper
                     $val = (string) $val;
             }
 
-            // Min-Pr�fung (optional)
+            // Min-Prüfung (optional)
             if ($min !== null && $val < $min) {
                 $errors[] = "$getKey muss = $min sein. Wurde auf $min gesetzt.";
                 $val = $min;
@@ -89,7 +89,7 @@ class EllipseParameterHelper
     // ------------------------------------------------------------------------
 
     /**
-     * Pr�ft, ob ein Datensatz mit exakt gleichen Parametern bereits existiert.
+     * Prüft, ob ein Datensatz mit exakt gleichen Parametern bereits existiert.
      */
     public function findDuplicate(string $table, array $params): ?int
     {
@@ -117,103 +117,213 @@ class EllipseParameterHelper
      * @param array  $params Key => Value Liste der Spalten
      * @return int   Neue ID
      */
-public function saveParameterSet(string $table, array $params, ?int $contentId = null): array
-{
-    $db = Database::getInstance();
-    $result = [
-        'status' => 'error',
-        'id' => null,
-        'message' => '',
-        'exception' => null,
-    ];
+    public function saveParameterSet(string $table, array $params): array
+    {
+        $db = Database::getInstance();
+        $result = [
+            'status' => 'error',
+            'id' => null,
+            'message' => '',
+            'exception' => null,
+        ];
+        try {
+            // 🧩 Frontend-Login prüfen
+            $username = 'guest';
+            if (defined('FE_USER_LOGGED_IN') && FE_USER_LOGGED_IN) {
+                $user = \Contao\FrontendUser::getInstance();
+                $username = $user->username ?? 'unknown';
+            } else {
+                // Falls kein Login vorhanden ist, trotzdem speichern (optional)
+                $username = 'gast';
+            }
+            $valuesString = implode(', ', array_map(fn($k, $v) => "$k=$v", array_keys($params), $params));
+            // 🧩 Duplikate prüfen
+            $duplicateId = $this->findDuplicate($table, $params);
+            if ($duplicateId !== null) {
+                return [
+                    'status' => 'duplicate',
+                    'id' => $duplicateId,
+                    'message' => "Datensatz bereits vorhanden $valuesString",
+                    'exception' => null,
+                ];
+            }
+            // 🧩 Zusatzfelder ergänzen
+            $params['createdAt'] = time();
+            $params['createdBy'] = $username;
 
-    try {
-        // ?? Login pr�fen
-        $username = 'guest';
-        if (defined('FE_USER_LOGGED_IN') && FE_USER_LOGGED_IN) {
-            $user = \Contao\FrontendUser::getInstance();
-            $username = $user->username ?? 'unknown';
-        } else {
-            $result['status'] = 'login_required';
-            $result['message'] = 'Kein Frontend-Login vorhanden. Bitte einloggen';
-            return $result;
+            // contentId nur speichern, wenn Feld existiert
+            /* ohne contentid
+            if ($contentId !== null && $db->fieldExists('contentId', $table)) {
+                $params['contentId'] = $contentId;
+            }
+            */
+
+            // 🧩 SQL-INSERT vorbereiten
+            $columns = [];
+            $placeholders = [];
+            $values = [];
+            foreach ($params as $key => $value) {
+                if (str_starts_with($key, '_')) continue; // interne Felder ignorieren
+                $columns[] = $key;
+                $placeholders[] = '?';
+                $values[] = $value;
+            }
+            if (empty($columns)) {
+                throw new \RuntimeException("Keine gültigen Spalten für Insert in $table gefunden.");
+            }
+            $sql = sprintf(
+                'INSERT INTO %s (%s) VALUES (%s)',
+                $table,
+                implode(', ', $columns),
+                implode(', ', $placeholders)
+            );
+            // 🧩 Query ausführen
+            $db->prepare($sql)->execute(...$values);
+            $insertId = (int) $db->insertId;
+
+
+            return [
+                'status' => 'inserted',
+                'id' => $insertId,
+                'message' => "Datensatz erfolgreich gespeichert $valuesString",
+                'exception' => null,
+            ];
         }
-
-        // ?? Duplikate pr�fen
-        $duplicateId = $this->findDuplicate($table, $params);
-        if ($duplicateId !== null) {
-            $result['status'] = 'duplicate';
-            $result['id'] = $duplicateId;
-            $result['message'] = "Datensatz bereits vorhanden (ID: $duplicateId)";
-            return $result;
+        catch (\Throwable $e) {
+            // 🧩 Fehlerbehandlung — direkt und ohne escape()
+            return [
+                'status' => 'db_error',
+                'id' => null,
+                'message' => 'Fehler beim Speichern in der Datenbank: ' . $e->getMessage(),
+                'exception' => sprintf('%s in %s:%d', $e->getMessage(), $e->getFile(), $e->getLine())
+                ];
         }
-
-        // ?? Zusatzfelder
-        $params['createdAt'] = time();
-        $params['createdBy'] = $username;
-        if ($contentId !== null) {
-            $params['contentId'] = $contentId;
-        }
-
-        // ?? INSERT vorbereiten
-        $columns = [];
-        $placeholders = [];
-        $values = [];
-
-        foreach ($params as $key => $value) {
-            if (str_starts_with($key, '_')) continue;
-            $columns[] = $key;
-            $placeholders[] = '?';
-            $values[] = $value;
-        }
-
-        $sql = sprintf(
-            'INSERT INTO %s (%s) VALUES (%s)',
-            $table,
-            implode(', ', $columns),
-            implode(', ', $placeholders)
-        );
-
-        $db->prepare($sql)->execute(...$values);
-        $insertId = (int) $db->insertId;
-
-        $result['status'] = 'inserted';
-        $result['id'] = $insertId;
-        $result['message'] = "Datensatz erfolgreich gespeichert (ID: $insertId)";
     }
-    catch (\Throwable $e) {
-        // ?? Datenbankfehler oder Ausnahme
-        $result['status'] = 'db_error';
-        $result['message'] = 'Fehler beim Speichern in der Datenbank.';
-        $result['exception'] = $e->getMessage();
+
+    public function loadParameterSet(string $table, int $variantId): array
+    {
+        $db = \Contao\Database::getInstance();
+
+        try {
+            // Datensatz auslesen
+            $variant = $db->prepare("
+                SELECT id, createdBy, title, parameters
+                FROM $table
+                WHERE id=?
+            ")->execute($variantId)->fetchAssoc();
+            if (!$variant) {
+                return [
+                    'status'  => 'not_found',
+                    'message' => "Variante #$variantId nicht gefunden.",
+                ];
+            }
+
+            // JSON-Parameter decodieren und mit Basisfeldern zusammenführen
+            $mergedParams = array_merge(
+                [
+                    'id'        => $variant['id'],
+                    'createdBy' => $variant['createdBy'],
+                    'title'     => $variant['title'],
+                ],
+                json_decode($variant['parameters'], true) ?: []
+            );
+            $valuesString = implode(', ', array_map(fn($k, $v) => "$k=$v", array_keys($mergedParams), $mergedParams));
+            return [
+                'status'     => 'loaded',
+                'message'    => "Variante #$variantId erfolgreich geladen ($valuesString).",
+                'parameters' => $mergedParams,
+                'raw'        => $variant,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status'    => 'db_error',
+                'message'   => 'Fehler beim Laden: ' . $e->getMessage(),
+                'exception' => $e,
+            ];
+        }
     }
-
-    return $result;
-}
-
     /**
-     * L�scht Datens�tze aus der Tabelle anhand bestimmter Bedingungen.
+     * Löscht Datensätze aus der Tabelle anhand bestimmter Bedingungen.
      *
      * @param string $table Tabellenname
      * @param array  $conditions Key => Value Filter
-     * @return int   Anzahl der gel�schten Datens�tze
+     * @return array Ergebnisstatus mit Status, Anzahl, Message, Exception
+     *             $deleteResult = $this->paramHelper->deleteParameterSet('tl_ellipse_save', [
+                    'id'  => $delId,
+                ]);
      */
-    public function deleteParameterSet(string $table, array $conditions): int
+    public function deleteParameterSet(string $table, array $conditions): array
     {
         $db = Database::getInstance();
+        $result = [
+            'status' => 'error',
+            'count' => 0,
+            'message' => '',
+            'exception' => null,
+        ];
 
-        $where = [];
-        $values = [];
+        try {
+            // 🧩 Sicherheitsprüfung
+            if (empty($table) || empty($conditions)) {
+                throw new \InvalidArgumentException('Tabelle oder Bedingungen sind leer.');
+            }
 
-        foreach ($conditions as $key => $value) {
-            $where[] = "$key = ?";
-            $values[] = $value;
+            // 🧩 WHERE-Bedingungen vorbereiten
+            $where = [];
+            $values = [];
+            foreach ($conditions as $key => $value) {
+                $where[] = "$key = ?";
+                $values[] = $value;
+            }
+            if (empty($where)) { throw new \RuntimeException('Keine gültigen Bedingungen für Löschvorgang angegeben.'); }
+                // 🧩 SQL-Befehl zusammenbauen
+            $sql = sprintf('DELETE FROM %s WHERE %s', $table, implode(' AND ', $where));
+            // 🧩 Ausführen
+            $query = $db->prepare($sql)->execute(...$values);
+            $affected = $query->affectedRows;
+            // 🧩 Erfolgsmeldung
+            return [
+                'status' => $affected > 0 ? 'deleted' : 'not_found',
+                'count' => $affected,
+                'message' => $affected > 0
+                    ? "Es wurden $affected Datensatz/Datensätze aus '$table' gelöscht."
+                    : "Keine passenden Datensätze in '$table' gefunden.",
+                    'exception' => null,
+            ];
         }
-
-        $sql = sprintf('DELETE FROM %s WHERE %s', $table, implode(' AND ', $where));
-
-        $result = $db->prepare($sql)->execute(...$values);
-
-        return $result->affectedRows;
+        catch (\Throwable $e) {
+            // 🧩 Fehlerauswertung
+            return [
+                'status' => 'db_error',
+                'count' => 0,
+                'message' => 'Fehler beim Löschen aus der Datenbank: ' . $e->getMessage(),
+                'exception' => sprintf('%s in %s:%d', $e->getMessage(), $e->getFile(), $e->getLine()),
+            ];
+        }
     }
+    
+    public function getSavedVariants(string $table): array
+    {
+        $db = \Contao\Database::getInstance();
+
+        try {
+            $query = sprintf("SELECT id, createdBy, title, parameters FROM %s ORDER BY createdBy,createdAt DESC", $table);
+
+            $result = $db->query($query)->fetchAllAssoc();
+
+            return [
+                'status'  => 'ok',
+                'message' => sprintf('%d Varianten gefunden.', count($result)),
+                'items'   => $result,
+            ];
+        } catch (\Throwable $e) {
+            return [
+                'status'    => 'db_error',
+                'message'   => 'Fehler beim Laden der Variantenliste: ' . $e->getMessage(),
+                'exception' => $e,
+                'items'     => [],
+            ];
+        }
+    }
+
 }

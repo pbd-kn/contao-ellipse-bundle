@@ -5,25 +5,21 @@ namespace PbdKn\ContaoEllipseBundle\Controller\ContentElement;
 use Contao\ContentModel;
 use Contao\CoreBundle\Controller\ContentElement\AbstractContentElementController;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsContentElement;
-use PbdKn\ContaoEllipseBundle\Service\EllipseParameterHelper; 
+use PbdKn\ContaoEllipseBundle\Service\EllipseParameterHelper;
 use Contao\BackendTemplate;
 use Contao\StringUtil;
 use Contao\System;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack; 
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Contao\Database;
 
 #[AsContentElement(EllipseController::TYPE, category: 'Ellipse', template: 'ce_ellipse')]
 class EllipseController extends AbstractContentElementController
 {
     public const TYPE = 'ce_ellipse';
-    private bool $debug = false;
 
-/**
-     * 🧩 Der Konstruktor: Symfony injiziert automatisch alle benötigten Services
-     * dank deiner services.yaml + ContaoEllipseExtension.
-     */
     public function __construct(
         private readonly EllipseParameterHelper $paramHelper,
         private readonly RequestStack $requestStack
@@ -31,111 +27,47 @@ class EllipseController extends AbstractContentElementController
 
     protected function getResponse($template, ContentModel $model, Request $request): Response
     {
+    
         $templateName = $model->ellipse_template ?: 'ce_ellipse';
-        $request = $this->requestStack->getCurrentRequest();
-        $currentCeId = $model->id;
-        // --- Backend Wildcard ---
+        //$request = $this->requestStack->getCurrentRequest();
+        $ceId = (int) $model->id;
+        $db = Database::getInstance();
+
+        // === Backend-Wildcard ===
         $scope = System::getContainer()->get('request_stack')?->getCurrentRequest()?->attributes?->get('_scope');
         if ('backend' === $scope) {
             $wildcard = new BackendTemplate('be_ellipse_wildcard');
-            $wildcard->title = StringUtil::deserialize($model->headline)['value'] ?? 'Ellipse';
-            $wildcard->id = $model->id;
-            $wildcard->href = 'contao?do=themes&table=tl_content&id=' . $model->id;
-            $wildcard->wildcard = "### Ellipse Template: $templateName ###<br>ID: " . $model->id;
+            $headline = StringUtil::deserialize($model->headline);
+            $wildcard->title = $headline['value'] ?? 'Ellipse';
+            $wildcard->id = $ceId;
+            $wildcard->href = 'contao?do=themes&table=tl_content&id=' . $ceId;
+            $wildcard->wildcard = "### Ellipse Template: $templateName ###<br>ID: $ceId";
             return new Response($wildcard->parse());
         }
 
-        $debugline = [];
-        $currentCeId = $model->id;     // CE Element ID
-// Parameter lesen über Helper
-// --- 1) Parameter holen ---
-        $params = $this->paramHelper->getParameterSet($request, $model, $currentCeId, [
+        // === Parameter via Helper laden ===
+        $params = $this->paramHelper->getParameterSet($request, $model, $ceId, [
             'A' => ['field' => 'ellipse_x', 'default' => 400, 'type' => 'int'],
             'B' => ['field' => 'ellipse_y', 'default' => 200, 'type' => 'int'],
             'Umdrehungen' => ['field' => 'ellipse_umlauf', 'default' => 1, 'type' => 'float'],
             'Schrittweite' => ['field' => 'ellipse_schrittweite_pkt', 'default' => 1, 'type' => 'float', 'min' => 0.1],
             'R' => ['field' => 'ellipse_point_sequence', 'default' => 20, 'type' => 'int'],
-            'templateSelectionActive' => ['templateSelectionActive', 'default' => 0, 'type' => 'bool'],
+            'templateSelectionActive' => ['field' => 'templateSelectionActive', 'default' => 0, 'type' => 'bool'],
             'showEllipse' => ['field' => 'showEllipse', 'default' => 0, 'type' => 'bool'],
             'showCircle'  => ['field' => 'showCircle', 'default' => 0, 'type' => 'bool'],
-
             'lineWidth' => ['field' => 'ellipse_line_thickness', 'default' => 3, 'type' => 'float'],
             'lineMode' => ['field' => 'ellipse_line_mode', 'default' => 'fixed', 'type' => 'string'],
             'lineColor' => ['field' => 'ellipse_line_color', 'default' => 'red', 'type' => 'string'],
-        ]);        /*
-        // Hilfsfunktion: GET > DB > Default
-        $val = function(string $getKey, string $dbField, $default = null) use ($request, $model, $currentCeId) {
-            $keyWithId = $getKey . '_' . $currentCeId;
-            $fromGetWithId = $request->query->get($keyWithId);
-            if ($fromGetWithId !== null && $fromGetWithId !== '') {
-                return $fromGetWithId;
-            }
-            if ($model->{$dbField} !== null && $model->{$dbField} !== '') {
-                return $model->{$dbField};
-            }
-            return $default;
-        };
+        ]);
 
-        $errors = [];
-
-        // === Parameter ===
-        $A = (int) $val('A', 'ellipse_x', 400);
-        $B = (int) $val('B', 'ellipse_y', 200);
-
-        $GRaw = (string) $val('Umdrehungen', 'ellipse_umlauf', '1');
-        $Umdrehungen = (float) str_replace(',', '.', $GRaw);
-        $grenzWinkel = $Umdrehungen * 360;
-
-        $Schrittweite = (float) str_replace(',', '.', (string) $val('Schrittweite', 'ellipse_schrittweite_pkt', '1'));
-        if ($Schrittweite <= 0) {
-            $errors[] = "Schrittweite muss > 0 sein. Wurde auf 1 gesetzt.";
-            $Schrittweite = 1;
-        }
-
-        $R = (int) $val('R', 'ellipse_point_sequence', 20);
-
-        $lineWidth = (float) str_replace(',', '.', (string) $val('lineWidth', 'ellipse_line_thickness', '3'));
-        $lineMode = (string) $val('lineMode', 'ellipse_line_mode', 'fixed');
-
-        $lineColor = '';
-        $cycleColors = [];
-
-        if ($lineMode === 'fixed') {
-            $lineColor = (string) $val('lineColor', 'ellipse_line_color', 'red');
-        } else {
-            for ($i = 1; $i <= 6; $i++) {
-                $key = "cycleColor{$i}_" . $currentCeId;
-                if ($request->query->has($key)) {
-                    $color = trim((string) $request->query->get($key));
-                    if ($color !== '') $cycleColors[] = $color;
-                } else {
-                    $dbField = "ellipse_cycle_color{$i}";
-                    $color = (string) ($model->{$dbField} ?? '');
-                    if (trim($color) !== '') $cycleColors[] = trim($color);
-                }
-            }
-            if (count($cycleColors) === 0) {
-                $cycleColors = ["blue", "green", "red", "orange", "purple", "brown"];
-            }
-            $lineColor = $cycleColors[0];
-        }
-
-        $templateSelectionActive = (bool) $request->query->get('templateSelectionActive_' . $currentCeId, $model->template_selection_active);
-        $showEllipse = (bool) $request->query->get('showEllipse_' . $currentCeId, $model->showEllipse);
-        $showCircle  = (bool) $request->query->get('showCircle_' . $currentCeId, $model->showCircle);
-        $this->debug = $showEllipse || $showCircle;
-        */
-// --- 3) Abgeleitete Werte ---
+        $errors = $params['_errors'] ?? [];
         $grenzWinkel = $params['Umdrehungen'] * 360;
 
-    // --- 4) Fehler aus Helper übernehmen (falls vorhanden) ---
-        $errors = $params['_errors'] ?? [];
-
-    // --- 5) Farben dynamisch ergänzen ---
+        // === Zyklusfarben ===
         $cycleColors = [];
         if ($params['lineMode'] !== 'fixed') {
             for ($i = 1; $i <= 6; $i++) {
-                $key = "cycleColor{$i}_" . $currentCeId;
+                $key = "cycleColor{$i}_{$ceId}";
                 if ($request->query->has($key)) {
                     $color = trim((string) $request->query->get($key));
                     if ($color !== '') $cycleColors[] = $color;
@@ -148,145 +80,114 @@ class EllipseController extends AbstractContentElementController
             if (count($cycleColors) === 0) {
                 $cycleColors = ["blue", "green", "red", "orange", "purple", "brown"];
             }
-            $lineColor = $cycleColors[0]; // beim ellipsezeicen wird linecolor verwendet
-        }        
-        // ViewBox
-        $margin = 20;
-        $viewBox = sprintf("-%d -%d %d %d", $params['A'] + $margin, $params['B'] + $margin, 2 * ($params['A'] + $margin), 2 * ($params['B'] + $margin));
+        }
 
-        // Punkte
+        // === SVG-Berechnung ===
         $points = [];
         for ($angle = 0; $angle < $grenzWinkel; $angle += $params['Schrittweite']) {
             $rad = deg2rad($angle);
-            $x = round($params['A'] * cos($rad),2);
-            $y = round($params['B'] * sin($rad),2);
+            $x = round($params['A'] * cos($rad), 2);
+            $y = round($params['B'] * sin($rad), 2);
             $points[] = ['x' => $x, 'y' => $y];
-            /*
-            so ist es bei krell
-            $punkte[] = [
-                'x' => round($X,2),   // punkt der Linie
-                'y' => round($Y,2),
-                'm1'=> round($M1,2),  // verschiebung kreismittelpunkt zum Kreis zeichen
-                'n1'=> round($N1,2),
-                'x1'=> round($X1,2),  // berührungspunkt kreis auf ellipse
-                'y1'=> round($Y1,2),
-                'ellng'=> round($deltaArc,2)
-            ];
-            */            
         }
+
+        $viewBox = sprintf(
+            "-%d -%d %d %d",
+            $params['A'] + 20,
+            $params['B'] + 20,
+            2 * ($params['A'] + 20),
+            2 * ($params['B'] + 20)
+        );
+
         $template = $this->createTemplate($model, $templateName);
 
-// ------------------------------------------------------------
-// 🧩 Speicherung der aktuellen Ellipse-Darstellung in tl_ellipse_save
-// ------------------------------------------------------------
-        if ( $request->getMethod() === 'POST' && $request->request->get('FORM_SUBMIT') === 'ellipse_save_' . $model->id ) {
-            $result = $this->paramHelper->saveParameterSet('tl_ellipse_data', $params, $currentCeId);
-            switch ($result['status']) {
-                case 'inserted':
-                    $template->saveSuccess = true;
-                    $template->saveMessage = $result['message'];
-                    break;
-                case 'duplicate':
-                    $template->saveSuccess = false;
-                    $template->saveMessage = $result['message'];
-                break;
-                case 'login_required':
-                    $template->saveSuccess = false;
-                    $template->saveMessage = $result['message'];
-                    break;
-                case 'db_error':
-                    $message = 
-                    $template->saveSuccess = false;
-                    $template->saveMessage = "Datenbankfehler: " . htmlspecialchars($result['exception']);
-                    break;
-                default:
-                    $template->saveSuccess = false;
-                    $template->saveMessage = "Unbekannter Fehler beim Speichern.";
-                    break;
+        // ---------------------------------------------------------------------
+        // 🟢 SPEICHERN (über Helper)
+        // ---------------------------------------------------------------------
+        if ($request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_save_' . $ceId) {
+            $info = trim($request->request->get('info_' . $ceId));
+
+            $saveData = [
+                'title'      => $info ?: 'Ohne Titel',
+                'parameters' => json_encode($params),
+            ];
+
+            //$result = $this->paramHelper->saveParameterSet('tl_ellipse_save', $saveData, $ceId);
+            $result = $this->paramHelper->saveParameterSet('tl_ellipse_save', $saveData);                         // ohne contenid
+
+            $template->saveSuccess = in_array($result['status'], ['inserted']);
+            $template->saveMessage = $result['message'] ?? 'Speicherfehler.';
+            if ($result['status'] === 'db_error' && !empty($result['exception'])) {
+                $template->saveMessage .= '<br><small style="color:#555">'
+                    . htmlspecialchars($result['exception'])
+                    . '</small>';
             }
-        }               // ende Speichern mit Login und Duplicate-Check
-
-/*
-    if ($request->getMethod() === 'POST' && $request->request->get('FORM_SUBMIT') === 'ellipse_save_' . $model->id) {
-
-    // 📝 1. Info-Text aus dem Formular
-    $infoText = trim((string) $request->request->get('info_' . $model->id));
-
-    // 👤 2. Aktuell eingeloggten Frontend-Benutzer ermitteln
-    $memberId = 0;
-    if (defined('FE_USER_LOGGED_IN') && FE_USER_LOGGED_IN && class_exists(\Contao\FrontendUser::class)) {
-        $user = \Contao\FrontendUser::getInstance();
-        if ($user !== null && $user->id) {
-            $memberId = (int) $user->id;
         }
-    }
 
-    // 📦 3. Alle Parameter in JSON packen (nur die, die es auch wirklich gibt)
-    $saveData = json_encode([
-        'A' => $A,
-        'B' => $B,
-        'Umlauf' => $Umdrehungen ?? $model->ellipse_umlauf,
-        'Schrittweite' => $Schrittweite ?? $model->ellipse_schrittweite_pkt,
-        'ReihenfolgePkt' => isset($ReihenfolgePkt) ? $ReihenfolgePkt : ($model->ellipse_point_sequence ?? 1),
-        'Linienstärke' => $lineWidth ?? $model->ellipse_line_thickness,
-        'lineMode' => $lineMode ?? $model->ellipse_line_mode,
-        'lineColor' => $lineColor ?? $model->ellipse_line_color,
-        'cycleColors' => $cycleColors ?? [],
-        'showEllipse' => $showEllipse ?? $model->showEllipse,
-        'showCircle'  => $showCircle ?? $model->showCircle,
-        'viewBox'     => $viewBox ?? '',
-    ], JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        // ---------------------------------------------------------------------
+        // 🔴 LÖSCHEN 
+        // ---------------------------------------------------------------------
+        if ( $request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_load_' . $ceId && $request->request->get('loadAction') === 'delete') {
+            $delId = (int) $request->request->get('loadVariant');
+             // ✅ Helper aufrufen – Rückgabe ist jetzt ein Array
+            $deleteResult = $this->paramHelper->deleteParameterSet('tl_ellipse_save', [
+                'id'  => $delId,
+            ]);
 
-    // 🧭 4. DB-Verbindung holen
-    $db = \Contao\System::getContainer()->get('database_connection');
+            // ✅ Status & Nachricht auswerten
+            $status = $deleteResult['status'] ?? 'error';
+            $count  = $deleteResult['count'] ?? 0;
+            $msg    = $deleteResult['message'] ?? 'Unbekannter Fehler.';
 
-    // 🔍 5. Prüfen, ob identischer Datensatz bereits existiert
-    $existing = $db->fetchAssociative("
-        SELECT id, info, tstamp
-        FROM tl_ellipse_save
-        WHERE member_id = ?
-          AND ce_type = ?
-          AND ce_id = ?
-          AND save_data = ?
-        LIMIT 1
-    ", [
-        $memberId,
-        self::TYPE,
-        $model->id,
-        $saveData
-    ]);
+            // ✅ Rückmeldung an Template
+            $template->saveSuccess = ($status === 'deleted');
+            $template->saveMessage = match ($status) {
+                'deleted'   => "Eintrag #$delId erfolgreich gelöscht ({$count} Zeile).",
+                'not_found' => "Eintrag #$delId wurde nicht gefunden.",
+                'db_error'  => "Fehler beim Löschen: {$msg}",
+                default     => $msg,
+            };
+        }
 
-    if ($existing) {
-        // ⚠️ Bereits gespeichert — kein neues INSERT
-        $template->saveSuccess = false;
-        $template->saveMessage = sprintf(
-            '⚠️ Diese Ellipse wurde bereits gespeichert (unter „%s“, am %s).',
-            $existing['info'] ?: 'ohne Beschreibung',
-            date('d.m.Y H:i', $existing['tstamp'])
-        );
-    } else {
-        // 💾 Neu eintragen
-        $db->insert('tl_ellipse_save', [
-            'tstamp'     => time(),
-            'member_id'  => $memberId,
-            'ce_type'    => self::TYPE,
-            'ce_id'      => $model->id,
-            'info'       => $infoText ?: 'ohne Beschreibung',
-            'save_data'  => $saveData,
-        ]);
 
-        $template->saveSuccess = true;
-        $template->saveMessage = '✅ Ellipse wurde erfolgreich gespeichert.';
-    }
-}
-*/
+        // ---------------------------------------------------------------------
+        // 🔵 LADEN (Anzeige gespeicherter Varianten)
+        // ---------------------------------------------------------------------
 
+        // ✅ Liste der Varianten über Helper abrufen
+        $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save', $ceId);
+        $template->savedVariants = $listResult['items'] ?? [];
+        //die ("varianten: ".count($listResult['items']));
+        
+        // Variante laden per POST
+        if ( $request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_load_' . $ceId && $request->request->get('loadAction') === 'load' ) {
+            $variantId = (int)$request->request->get('loadVariant');
+            if ($variantId > 0) {
+                // ✅ Helper verwenden
+                $loadResult = $this->paramHelper->loadParameterSet('tl_ellipse_save', $variantId);
+
+                if ($loadResult['status'] === 'loaded') {
+                    $params = $loadResult['parameters']; // 👉 wichtig: ersetzt alte Werte
+                    $template->loadedParameters = $loadResult['parameters'];
+                    $template->loadedId = $variantId;
+                    $template->loadMessage = $loadResult['message'];
+                } else {
+                    $template->loadMessage = $loadResult['message'];
+                }
+           } else {
+                $template->loadMessage = "Keine Variante ausgewählt.";
+            }
+        }
+
+
+        // ---------------------------------------------------------------------
         // Template befüllen
-        $template->headlineHtml = $model->headline
-            ? sprintf('<%1$s>%2$s</%1$s>', StringUtil::deserialize($model->headline)['unit'] ?? 'h2', StringUtil::deserialize($model->headline)['value'] ?? '')
+        // ---------------------------------------------------------------------
+        $headline = StringUtil::deserialize($model->headline);
+        $template->headlineHtml = $headline
+            ? sprintf('<%1$s>%2$s</%1$s>', $headline['unit'] ?? 'h2', $headline['value'] ?? '')
             : '';
 
-        $template->debugline = $debugline;
         $template->A = $params['A'];
         $template->B = $params['B'];
         $template->R = $params['R'];
