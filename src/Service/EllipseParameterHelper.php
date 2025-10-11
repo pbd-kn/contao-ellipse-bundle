@@ -164,6 +164,10 @@ class EllipseParameterHelper
             $values = [];
             foreach ($params as $key => $value) {
                 if (str_starts_with($key, '_')) continue; // interne Felder ignorieren
+// 🔹 Arrays/Objekte in JSON konvertieren
+    if (is_array($value) || is_object($value)) {
+        $value = json_encode($value, JSON_UNESCAPED_UNICODE);
+    }                
                 $columns[] = $key;
                 $placeholders[] = '?';
                 $values[] = $value;
@@ -214,7 +218,7 @@ class EllipseParameterHelper
             if (!$variant) {
                 return [
                     'status'  => 'not_found',
-                    'message' => "Variante #$variantId nicht gefunden.",
+                    'message' => "Darstellung #$variantId nicht gefunden.",
                 ];
             }
 
@@ -230,7 +234,7 @@ class EllipseParameterHelper
             $valuesString = implode(', ', array_map(fn($k, $v) => "$k=$v", array_keys($mergedParams), $mergedParams));
             return [
                 'status'     => 'loaded',
-                'message'    => "Variante #$variantId erfolgreich geladen ($valuesString).",
+                'message'    => "Darstellung #$variantId erfolgreich geladen ($valuesString).",
                 'parameters' => $mergedParams,
                 'raw'        => $variant,
             ];
@@ -313,13 +317,13 @@ class EllipseParameterHelper
 
             return [
                 'status'  => 'ok',
-                'message' => sprintf('%d Varianten gefunden.', count($result)),
+                'message' => sprintf('%d Darstellung gefunden.', count($result)),
                 'items'   => $result,
             ];
         } catch (\Throwable $e) {
             return [
                 'status'    => 'db_error',
-                'message'   => 'Fehler beim Laden der Variantenliste: ' . $e->getMessage(),
+                'message'   => 'Fehler beim Laden der Darstellungliste: ' . $e->getMessage(),
                 'exception' => $e,
                 'items'     => [],
             ];

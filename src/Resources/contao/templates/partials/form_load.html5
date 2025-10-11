@@ -1,0 +1,35 @@
+<form method="post" class="ellipse-load-form" style="margin-bottom:1em;">
+    <?php echo '<input type="hidden" name="REQUEST_TOKEN" value="' .
+        \Contao\System::getContainer()->get("contao.csrf.token_manager")->getDefaultTokenValue() . '">'; ?>
+
+    <input type="hidden" name="FORM_SUBMIT" value="ellipse_load_<?= $this->id ?>">
+    <input type="hidden" name="ceId" value="<?= $this->id ?>">
+
+    <label for="loadVariant_<?= $this->id ?>"><strong>Gespeicherte Darstellungen:</strong></label><br>
+
+    <select name="loadVariant" id="loadVariant_<?= $this->id ?>" style="width:70%;padding:4px;">
+        <option value="">-- Darstellung wählen --</option>
+        <?php foreach ($this->savedVariants as $v): ?>
+            <?php $params = json_decode($v['parameters'], true); ?>
+            <option value="<?= htmlspecialchars($v['id'], ENT_QUOTES) ?>">
+                <?= htmlspecialchars($v['title'] ?? '', ENT_QUOTES) ?>
+                <?php if (!empty($params)): ?>
+                    (<?= htmlspecialchars(implode(', ',
+                        array_map(fn($k,$val)=>"$k=$val",
+                        array_keys($params), $params)), ENT_QUOTES) ?>)
+                <?php endif; ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+
+    <button type="submit" name="loadAction" value="load" class="button-load">🔵 Laden</button>
+    <button type="submit" name="loadAction" value="delete" class="button-delete"
+            onclick="return confirm('Möchten Sie diese Darstellung wirklich löschen?');">❌ Löschen</button>
+</form>
+
+<?php if (!empty($this->deleteMessage)): ?>
+    <p style="color:red;font-weight:bold;"><?= $this->deleteMessage ?></p>
+<?php endif; ?>
+<?php if (!empty($this->loadMessage)): ?>
+    <p style="color:green;font-weight:bold;"><?= $this->loadMessage ?></p>
+<?php endif; ?>

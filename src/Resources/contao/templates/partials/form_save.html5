@@ -1,0 +1,27 @@
+<form method="post" class="ellipse-save-form" style="margin-top:1em;">
+    <?php echo '<input type="hidden" name="REQUEST_TOKEN" value="' .
+        \Contao\System::getContainer()->get("contao.csrf.token_manager")->getDefaultTokenValue() . '">'; ?>
+
+    <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
+    <input type="hidden" name="ceId" value="<?= $this->id ?>">
+
+    <input type="text" id="info_<?= $this->id ?>" name="info_<?= $this->id ?>"
+           placeholder="Erklärung hinzufügen" style="width:70%;">
+
+    <button type="submit" id="saveBtn_<?= $this->id ?>" name="saveEllipse_<?= $this->id ?>"
+            class="button-save" disabled>
+        Darstellung speichern
+    </button>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const input = document.getElementById('info_<?= $this->id ?>');
+    const button = document.getElementById('saveBtn_<?= $this->id ?>');
+    if (input && button) {
+        const update = () => button.disabled = input.value.trim().length === 0;
+        update();
+        input.addEventListener('input', update);
+    }
+});
+</script>

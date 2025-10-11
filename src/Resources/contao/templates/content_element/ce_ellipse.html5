@@ -100,73 +100,77 @@
         <button type="button" onclick="printSVG(<?= $this->id ?>)">🖨 SVG drucken</button>
         <button type="button" onclick="downloadSVG(<?= $this->id ?>)">💾 SVG speichern</button>
     </div>
-    <!-- Neues Formular: Darstellung speichern -->
-    <form method="post" class="ellipse-save-form" style="margin-top:1em;">
-        <!-- CSRF-Schutz (Contao 5-kompatibel) -->
-        <?php echo '<input type="hidden" name="REQUEST_TOKEN" value="' . \Contao\System::getContainer()->get("contao.csrf.token_manager")->getDefaultTokenValue() . '">'; ?>
-        <!-- Formularkennung für Contao -->
-        <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
-        <input type="hidden" name="ceId" value="<?= $this->id ?>">
-        <input type="text" id="info_<?= $this->id ?>" name="info_<?= $this->id ?>" placeholder="Erklärung hinzufügen"style="width:70%;">     <!-- Eingabefeld für Zusatzinfo title-->
-        <!-- Absende-Button -->
-        <button type="submit" id="saveBtn_<?= $this->id ?>" name="saveEllipse_<?= $this->id ?>" class="button-save" disabled> Darstellung speichern </button>
-    </form>
-    <!-- Erfolgsmeldung speichern -->
-    <?php 
-        if (isset($this->saveMessage)) {
-            $cl = $this->saveSuccess ? 'save-ok' : 'save-warning';
-            echo "<p class='$cl'>". $this->saveMessage . "</p>";
-        }
-    ?>
+    
+<!-- ====================================== -->
+<!-- 🔹 Umschalter & Formular (Save) -->
+<!-- ====================================== -->
 
-    <script>   // buttonerst aktiv, nach eingabe
-        document.addEventListener('DOMContentLoaded', function () {
-            const input = document.getElementById('info_<?= $this->id ?>');
-            const button = document.getElementById('saveBtn_<?= $this->id ?>');
+<label style="display:block; margin:1em 0;">
+    <input type="checkbox" id="toggleSaveForm_<?= $this->id ?>"
+    <?= $showSaveForm ? 'checked' : '' ?>>
+    <strong>Darstellung speichern anzeigen</strong>
+</label>
 
-            function updateButtonState() {
-                button.disabled = input.value.trim().length === 0;
-            }
-            if (input && button) {  
-                updateButtonState(); // Initial prüfen            
-                input.addEventListener('input', updateButtonState);  // Auf Eingabe reagieren
-            }
+<!-- ✅ Erfolgsmeldung oberhalb des Formulars -->
+<?php if (isset($this->saveMessage)): ?>
+    <?php $cl = $this->saveSuccess ? 'save-ok' : 'save-warning'; ?>
+    <p class="<?= $cl ?>" style="margin:0.5em 0; padding:0.3em; border:1px solid #ccc; background:#f7f7f7;">
+    <?= $this->saveMessage ?>
+    </p>
+<?php endif; ?>
+
+<!-- ✅ Formular (nur sichtbar, wenn Checkbox aktiv oder Meldung vorhanden) -->
+<div id="saveFormWrapper_<?= $this->id ?>"
+     style="display:<?= $showSaveForm ? 'block' : 'none' ?>;">
+    <?php include __DIR__ . '/../partials/form_save.html5'; ?>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checkbox = document.getElementById('toggleSaveForm_<?= $this->id ?>');
+    const wrapper  = document.getElementById('saveFormWrapper_<?= $this->id ?>');
+    if (checkbox && wrapper) {
+        checkbox.addEventListener('change', () => {
+            wrapper.style.display = checkbox.checked ? 'block' : 'none';
         });
-    </script>
-    <!-- ====================================== -->
-    <!-- 🔹 Gespeicherte Darstellungen: Laden/Löschen -->
-    <!-- ====================================== -->
-    <form method="post" class="ellipse-load-form" style="margin-bottom:1em;">
-        <!-- ✅ CSRF-Token richtig erzeugen -->
-        <?php echo '<input type="hidden" name="REQUEST_TOKEN" value="' . \Contao\System::getContainer()->get("contao.csrf.token_manager")->getDefaultTokenValue() . '">'; ?>
-        <!-- Wichtig: POST statt GET -->
-        <input type="hidden" name="FORM_SUBMIT" value="ellipse_load_<?= $this->id ?>">
-        <input type="hidden" name="ceId" value="<?= $this->id ?>">
-        <label for="loadVariant_<?= $this->id ?>"><strong>Gespeicherte Darstellungen:</strong></label><br>
-        <select name="loadVariant" id="loadVariant_<?= $this->id ?>" style="width:70%;padding:4px;">
-            <option value="">-- Darstellung wählen --</option>
-            <?php foreach ($this->savedVariants as $v): ?>
-                <?php $params = json_decode($v['parameters'], true); ?>
-                <option value="<?= htmlspecialchars($v['id'], ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>"> <?= htmlspecialchars($v['title'] ?? '', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>
-                    <?php if (!empty($params)): ?>
-                        (<?= htmlspecialchars(implode(', ', array_map(fn($k,$val)=>"$k=$val", array_keys($params), $params)), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') ?>)
-                    <?php endif; ?>
-                </option>
-            <?php endforeach; ?>
-        </select>
-        <!-- 🔘 Buttons: Laden & Löschen -->
-        <button type="submit" name="loadAction" value="load" class="button-load"> 🔵 Laden </button>
-        <button type="submit" name="loadAction" value="delete" class="button-delete" onclick="return confirm('Möchten Sie diese Darstellung wirklich löschen?');"> ❌ Löschen </button>
-    </form>
+    }
+});
+</script>
 
-    <!-- 💬 Optional: Rückmeldungen -->
-    <?php if (!empty($this->deleteMessage)): ?>
-        <p style="color:red;font-weight:bold;"><?= $this->deleteMessage ?></p>
-    <?php endif; ?>
 
-    <?php if (!empty($this->loadMessage)): ?>
-        <p style="color:green;font-weight:bold;"><?= $this->loadMessage ?></p>
-    <?php endif; ?>
+<label style="display:block; margin:1em 0;">
+    <input type="checkbox" id="toggleLoadForm_<?= $this->id ?>"
+    <?= $showLoadForm ? 'checked' : '' ?>>
+    <strong>Darstellung laden/löschen</strong>
+    <?= $this->loadMessage ?>
+</label>
+
+<!-- ✅ Erfolgsmeldung oberhalb des Formulars -->
+<?php if (isset($this->loadMessage)): ?>
+    <?php $cl = $this->saveSuccess ? 'save-ok' : 'save-warning'; ?>
+    <p class="<?= $cl ?>" style="margin:0.5em 0; padding:0.3em; border:1px solid #ccc; background:#f7f7f7;">
+        <?= $this->saveMessage ?>
+    </p>
+<?php endif; ?>
+
+
+<div id="loadFormWrapper_<?= $this->id ?>" style="display:none;">
+    <?php include __DIR__ . '/../partials/form_load.html5'; ?>    <!-- Neues Formular: Gespeicherte Darstellungen: Laden/Löschen -->
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const checkbox = document.getElementById('toggleLoadForm_<?= $this->id ?>');
+    const wrapper  = document.getElementById('loadFormWrapper_<?= $this->id ?>');
+    if (checkbox && wrapper) {
+        checkbox.addEventListener('change', () => {
+            wrapper.style.display = checkbox.checked ? 'block' : 'none';
+        });
+    }
+});
+</script>
+
+    
+    
 
     <!-- SVG-Anzeige -->
     <div id="svg-container-<?= $this->id ?>">

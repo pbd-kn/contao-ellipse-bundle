@@ -81,7 +81,7 @@ class EllipseController extends AbstractContentElementController
                 $cycleColors = ["blue", "green", "red", "orange", "purple", "brown"];
             }
         }
-
+        $params['cycleColors'] = $cycleColors;    // in array aufnehmen
         // === SVG-Berechnung ===
         $points = [];
         for ($angle = 0; $angle < $grenzWinkel; $angle += $params['Schrittweite']) {
@@ -151,15 +151,15 @@ class EllipseController extends AbstractContentElementController
 
 
         // ---------------------------------------------------------------------
-        // 🔵 LADEN (Anzeige gespeicherter Varianten)
+        // 🔵 LADEN (Anzeige gespeicherter Darstellung)
         // ---------------------------------------------------------------------
 
-        // ✅ Liste der Varianten über Helper abrufen
+        // ✅ Liste der Darstellung über Helper abrufen
         $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save', $ceId);
         $template->savedVariants = $listResult['items'] ?? [];
         //die ("varianten: ".count($listResult['items']));
         
-        // Variante laden per POST
+        // Darstellung laden per POST
         if ( $request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_load_' . $ceId && $request->request->get('loadAction') === 'load' ) {
             $variantId = (int)$request->request->get('loadVariant');
             if ($variantId > 0) {
@@ -175,7 +175,7 @@ class EllipseController extends AbstractContentElementController
                     $template->loadMessage = $loadResult['message'];
                 }
            } else {
-                $template->loadMessage = "Keine Variante ausgewählt.";
+                $template->loadMessage = "Keine Darstellung ausgewählt.";
             }
         }
 
