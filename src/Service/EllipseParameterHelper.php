@@ -143,7 +143,7 @@ class EllipseParameterHelper
                 return [
                     'status' => 'duplicate',
                     'id' => $duplicateId,
-                    'message' => "Datensatz bereits vorhanden $valuesString",
+                    'message' => "Keine Änderungen – Darstellung ist schon gespeichert.",
                     'exception' => null,
                 ];
             }
