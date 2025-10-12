@@ -126,6 +126,7 @@ class EllipseParameterHelper
             'message' => '',
             'exception' => null,
         ];
+//die("saveParameterSet " .var_dump($params));
         try {
             // 🧩 Frontend-Login prüfen
             $username = 'guest';
@@ -231,6 +232,7 @@ class EllipseParameterHelper
                 ],
                 json_decode($variant['parameters'], true) ?: []
             );
+//die ('loadParameterSet :'.var_dump($mergedParams));
             $valuesString = implode(', ', array_map(fn($k, $v) => "$k=$v", array_keys($mergedParams), $mergedParams));
             return [
                 'status'     => 'loaded',

@@ -1,14 +1,6 @@
 <!-- ?? Partial: Aktionsbuttons -->
 <div class="ellipse-actions">
-    <button type="button" onclick="submitEllipseForm(<?= $this->id ?>)">
-        ?? Neu zeichnen
-    </button>
-
-    <button type="button" onclick="printSVG(<?= $this->id ?>)">
-        ?? SVG drucken
-    </button>
-
-    <button type="button" onclick="downloadSVG(<?= $this->id ?>)">
-        ?? SVG speichern
-    </button>
+        <button type="button" onclick="submitEllipseForm(<?= $this->id ?>)">🔄 Neu zeichnen</button>
+        <button type="button" onclick="printSVG(<?= $this->id ?>)">🖨 SVG drucken</button>
+        <button type="button" onclick="downloadSVG(<?= $this->id ?>)">💾 SVG speichern</button>
 </div>

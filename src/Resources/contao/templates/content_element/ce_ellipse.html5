@@ -1,20 +1,7 @@
 <div class="ce_ellipse" id="ce-<?= $this->id ?>">
     <?= $this->headlineHtml ?>
 <!-- Formular mit Checkbox -->
-    <form method="get" id="ellipse-form-<?= $this->id ?>" class="ellipse-form">
-        <input type="hidden" name="ceId" value="<?= $this->id ?>">
 
-        <div class="form-row">
-            <label for="templateSelectionActive_<?= $this->id ?>">Konfiguration anzeigen</label>
-            <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="0">
-            <input type="checkbox"
-                name="templateSelectionActive_<?= $this->id ?>"
-                id="templateSelectionActive_<?= $this->id ?>"
-                value="1"
-                <?= $this->templateSelectionActive ? 'checked' : '' ?>
-                onchange="document.getElementById('ellipse-form-<?= $this->id ?>').submit()">
-        </div>
-    </form>
 
     <!-- Parameter-Dialog -->
     <dialog id="ellipseDialog_<?= $this->id ?>" class="ellipse-dialog">
@@ -95,79 +82,82 @@
     </dialog>
 
     <!-- Aktionsbuttons außerhalb des Dialogs -->
-    <div class="ellipse-actions">
-        <button type="button" onclick="submitEllipseForm(<?= $this->id ?>)">🔄 Neu zeichnen</button>
-        <button type="button" onclick="printSVG(<?= $this->id ?>)">🖨 SVG drucken</button>
-        <button type="button" onclick="downloadSVG(<?= $this->id ?>)">💾 SVG speichern</button>
-    </div>
+    <?php include __DIR__ . '/../partials/action_buttons.html5'; ?>
+    <!-- Konfigurations button außerhalb des Dialogs -->
+    <p></p>
+    <form method="get" id="ellipse-form-<?= $this->id ?>" class="ellipse-form">
+        <input type="hidden" name="ceId" value="<?= $this->id ?>">
+        <div>
+            <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="0">
+            <input type="checkbox"
+                name="templateSelectionActive_<?= $this->id ?>"
+                id="templateSelectionActive_<?= $this->id ?>"
+                value="1"
+                <?= $this->templateSelectionActive ? 'checked' : '' ?>
+                onchange="document.getElementById('ellipse-form-<?= $this->id ?>').submit()">
+            <label for="templateSelectionActive_<?= $this->id ?>"><strong>Konfiguration anzeigen</strong></label>
+        </div>
+    </form>
     
-<!-- ====================================== -->
-<!-- 🔹 Umschalter & Formular (Save) -->
-<!-- ====================================== -->
+    <!-- ====================================== -->
+    <!-- 🔹 Umschalter & Formular (Save) -->
+    <!-- ====================================== -->
+    <?php $showSaveForm = $showSaveForm ?? !empty($this->saveMessage); ?>    
+    <label style="display:block; margin:1em 0;">
+        <input type="checkbox" id="toggleSaveForm_<?= $this->id ?>"<?= $showSaveForm ? 'checked' : '' ?> >
+        <strong>Darstellung speichern</strong>
+    </label>
 
-<label style="display:block; margin:1em 0;">
-    <input type="checkbox" id="toggleSaveForm_<?= $this->id ?>"
-    <?= $showSaveForm ? 'checked' : '' ?>>
-    <strong>Darstellung speichern anzeigen</strong>
-</label>
+    <!-- ✅ Erfolgsmeldung oberhalb des Formulars -->
+    <?php if (isset($this->saveMessage)): ?>
+        <?php $cl = $this->saveSuccess ? 'save-ok' : 'save-warning'; ?>
+        <p class="<?= $cl ?>" style="margin:0.5em 0; padding:0.3em; border:1px solid #ccc; background:#f7f7f7;"><?= $this->saveMessage ?></p>
+    <?php endif; ?>
 
-<!-- ✅ Erfolgsmeldung oberhalb des Formulars -->
-<?php if (isset($this->saveMessage)): ?>
-    <?php $cl = $this->saveSuccess ? 'save-ok' : 'save-warning'; ?>
-    <p class="<?= $cl ?>" style="margin:0.5em 0; padding:0.3em; border:1px solid #ccc; background:#f7f7f7;">
-    <?= $this->saveMessage ?>
-    </p>
-<?php endif; ?>
+    <!-- ✅ Formular (nur sichtbar, wenn Checkbox aktiv oder Meldung vorhanden) -->
+    <div id="saveFormWrapper_<?= $this->id ?>" style="display:<?= $showSaveForm ? 'block' : 'none' ?>;">
+        <?php include __DIR__ . '/../partials/form_save.html5'; ?>
+    </div>
 
-<!-- ✅ Formular (nur sichtbar, wenn Checkbox aktiv oder Meldung vorhanden) -->
-<div id="saveFormWrapper_<?= $this->id ?>"
-     style="display:<?= $showSaveForm ? 'block' : 'none' ?>;">
-    <?php include __DIR__ . '/../partials/form_save.html5'; ?>
-</div>
-
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const checkbox = document.getElementById('toggleSaveForm_<?= $this->id ?>');
-    const wrapper  = document.getElementById('saveFormWrapper_<?= $this->id ?>');
-    if (checkbox && wrapper) {
-        checkbox.addEventListener('change', () => {
-            wrapper.style.display = checkbox.checked ? 'block' : 'none';
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const checkbox = document.getElementById('toggleSaveForm_<?= $this->id ?>');
+            const wrapper  = document.getElementById('saveFormWrapper_<?= $this->id ?>');
+                if (checkbox && wrapper) {
+                checkbox.addEventListener('change', () => {
+                    wrapper.style.display = checkbox.checked ? 'block' : 'none';
+                });
+            }
         });
-    }
-});
-</script>
+    </script>
+
+    <?php $showLoadForm = $showLoadForm ?? !empty($this->loadMessage); ?>
+    <label style="display:block; margin:1em 0;">
+        <input type="checkbox" id="toggleLoadForm_<?= $this->id ?>" <?= $showLoadForm ? 'checked' : '' ?> >
+        <strong>Darstellung laden/löschen</strong>
+    </label>
+
+    <!-- ✅ Erfolgsmeldung (nur sichtbar, wenn Checkbox aktiv oder Meldung vorhanden) -->
+    <?php if (isset($this->loadMessage)): ?>
+        <?php $cl = $this->loadSuccess ? 'save-ok' : 'save-warning'; ?>
+        <p class="<?= $cl ?>" style="margin:0.5em 0; padding:0.3em; border:1px solid #ccc; background:#f7f7f7;"> <?= $this->loadMessage ?></p>
+    <?php endif; ?>
 
 
-<label style="display:block; margin:1em 0;">
-    <input type="checkbox" id="toggleLoadForm_<?= $this->id ?>"
-    <?= $showLoadForm ? 'checked' : '' ?>>
-    <strong>Darstellung laden/löschen</strong>
-    <?= $this->loadMessage ?>
-</label>
-
-<!-- ✅ Erfolgsmeldung oberhalb des Formulars -->
-<?php if (isset($this->loadMessage)): ?>
-    <?php $cl = $this->saveSuccess ? 'save-ok' : 'save-warning'; ?>
-    <p class="<?= $cl ?>" style="margin:0.5em 0; padding:0.3em; border:1px solid #ccc; background:#f7f7f7;">
-        <?= $this->saveMessage ?>
-    </p>
-<?php endif; ?>
-
-
-<div id="loadFormWrapper_<?= $this->id ?>" style="display:none;">
-    <?php include __DIR__ . '/../partials/form_load.html5'; ?>    <!-- Neues Formular: Gespeicherte Darstellungen: Laden/Löschen -->
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const checkbox = document.getElementById('toggleLoadForm_<?= $this->id ?>');
-    const wrapper  = document.getElementById('loadFormWrapper_<?= $this->id ?>');
-    if (checkbox && wrapper) {
-        checkbox.addEventListener('change', () => {
-            wrapper.style.display = checkbox.checked ? 'block' : 'none';
+    <div id="loadFormWrapper_<?= $this->id ?>" style="display:<?= $showLoadForm ? 'block' : 'none' ?>;">
+        <?php include __DIR__ . '/../partials/form_load.html5'; ?>    <!-- Neues Formular: Gespeicherte Darstellungen: Laden/Löschen -->
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const checkbox = document.getElementById('toggleLoadForm_<?= $this->id ?>');
+            const wrapper  = document.getElementById('loadFormWrapper_<?= $this->id ?>');
+            if (checkbox && wrapper) {
+                checkbox.addEventListener('change', () => {
+                    wrapper.style.display = checkbox.checked ? 'block' : 'none';
+                });
+            }
         });
-    }
-});
-</script>
+    </script>
 
     
     
@@ -189,7 +179,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 $y1 = -$this->points[$i]['y'];
                 $x2 = $this->points[$j]['x'];
                 $y2 = -$this->points[$j]['y'];
-                $color = ($this->lineMode === "cycle") ? $this->cycleColors[$i % count($this->cycleColors)] : $this->lineColor;
+                if ($this->lineMode === "cycle") {
+                    if ( count($this->cycleColors) == 0) $color = $this->lineColor;
+                    else                             $color = $this->cycleColors[$i % count($this->cycleColors)];
+                } else { $color = $this->lineColor; }
                 if ($this->showCircle) {
                     echo "<line x1='$x1' y1='$y1' x2='$x2' y2='$y2' stroke='$color' stroke-width='$lineWidth' marker-end='url(#arrowhead)' />";
                 } else {

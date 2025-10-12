@@ -45,6 +45,8 @@ class EllipseController extends AbstractContentElementController
             return new Response($wildcard->parse());
         }
 
+        $template = $this->createTemplate($model, $templateName);
+
         // === Parameter via Helper laden ===
         $params = $this->paramHelper->getParameterSet($request, $model, $ceId, [
             'A' => ['field' => 'ellipse_x', 'default' => 400, 'type' => 'int'],
@@ -61,7 +63,6 @@ class EllipseController extends AbstractContentElementController
         ]);
 
         $errors = $params['_errors'] ?? [];
-        $grenzWinkel = $params['Umdrehungen'] * 360;
 
         // === Zyklusfarben ===
         $cycleColors = [];
@@ -80,27 +81,8 @@ class EllipseController extends AbstractContentElementController
             if (count($cycleColors) === 0) {
                 $cycleColors = ["blue", "green", "red", "orange", "purple", "brown"];
             }
+            $params['cycleColors']=$cycleColors;
         }
-        $params['cycleColors'] = $cycleColors;    // in array aufnehmen
-        // === SVG-Berechnung ===
-        $points = [];
-        for ($angle = 0; $angle < $grenzWinkel; $angle += $params['Schrittweite']) {
-            $rad = deg2rad($angle);
-            $x = round($params['A'] * cos($rad), 2);
-            $y = round($params['B'] * sin($rad), 2);
-            $points[] = ['x' => $x, 'y' => $y];
-        }
-
-        $viewBox = sprintf(
-            "-%d -%d %d %d",
-            $params['A'] + 20,
-            $params['B'] + 20,
-            2 * ($params['A'] + 20),
-            2 * ($params['B'] + 20)
-        );
-
-        $template = $this->createTemplate($model, $templateName);
-
         // ---------------------------------------------------------------------
         // 🟢 SPEICHERN (über Helper)
         // ---------------------------------------------------------------------
@@ -123,6 +105,57 @@ class EllipseController extends AbstractContentElementController
                     . '</small>';
             }
         }
+        
+        // ---------------------------------------------------------------------
+        // 🔵 LADEN (Anzeige gespeicherter Darstellung)
+        // ---------------------------------------------------------------------
+
+        // ✅ Liste der Darstellung über Helper abrufen
+        $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save', $ceId);
+        $template->savedVariants = $listResult['items'] ?? [];
+        //die ("varianten: ".count($listResult['items']));
+        
+        // Darstellung laden per POST
+        if ( $request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_load_' . $ceId && $request->request->get('loadAction') === 'load' ) {
+            $variantId = (int)$request->request->get('loadVariant');
+            if ($variantId > 0) {
+                // ✅ Helper verwenden
+                $loadResult = $this->paramHelper->loadParameterSet('tl_ellipse_save', $variantId);
+
+                if ($loadResult['status'] === 'loaded') {
+                    $params = $loadResult['parameters']; // 👉 wichtig: ersetzt alte Werte
+                    if (isset($params['cycleColors'])) $cycleColors=$params['cycleColors'];   // wird unten ins template übernommen
+//die ("laden ".var_dump($params));
+                    $template->loadedParameters = $loadResult['parameters'];
+                    $template->loadedId = $variantId;
+                    $template->loadMessage = $loadResult['message'];
+                } else {
+                    $template->loadMessage = $loadResult['message'];
+                }
+           } else {
+                $template->loadMessage = "Keine Darstellung ausgewählt.";
+            }
+        }
+        $grenzWinkel = $params['Umdrehungen'] * 360;
+
+        // === SVG-Berechnung ===
+        $points = [];
+        for ($angle = 0; $angle < $grenzWinkel; $angle += $params['Schrittweite']) {
+            $rad = deg2rad($angle);
+            $x = round($params['A'] * cos($rad), 2);
+            $y = round($params['B'] * sin($rad), 2);
+            $points[] = ['x' => $x, 'y' => $y];
+        }
+
+        $viewBox = sprintf(
+            "-%d -%d %d %d",
+            $params['A'] + 20,
+            $params['B'] + 20,
+            2 * ($params['A'] + 20),
+            2 * ($params['B'] + 20)
+        );
+
+
 
         // ---------------------------------------------------------------------
         // 🔴 LÖSCHEN 
@@ -150,34 +183,6 @@ class EllipseController extends AbstractContentElementController
         }
 
 
-        // ---------------------------------------------------------------------
-        // 🔵 LADEN (Anzeige gespeicherter Darstellung)
-        // ---------------------------------------------------------------------
-
-        // ✅ Liste der Darstellung über Helper abrufen
-        $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save', $ceId);
-        $template->savedVariants = $listResult['items'] ?? [];
-        //die ("varianten: ".count($listResult['items']));
-        
-        // Darstellung laden per POST
-        if ( $request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_load_' . $ceId && $request->request->get('loadAction') === 'load' ) {
-            $variantId = (int)$request->request->get('loadVariant');
-            if ($variantId > 0) {
-                // ✅ Helper verwenden
-                $loadResult = $this->paramHelper->loadParameterSet('tl_ellipse_save', $variantId);
-
-                if ($loadResult['status'] === 'loaded') {
-                    $params = $loadResult['parameters']; // 👉 wichtig: ersetzt alte Werte
-                    $template->loadedParameters = $loadResult['parameters'];
-                    $template->loadedId = $variantId;
-                    $template->loadMessage = $loadResult['message'];
-                } else {
-                    $template->loadMessage = $loadResult['message'];
-                }
-           } else {
-                $template->loadMessage = "Keine Darstellung ausgewählt.";
-            }
-        }
 
 
         // ---------------------------------------------------------------------
