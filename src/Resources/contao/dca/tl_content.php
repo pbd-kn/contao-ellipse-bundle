@@ -2,6 +2,7 @@
 
 use PbdKn\ContaoEllipseBundle\Controller\ContentElement\EllipseController;
 use PbdKn\ContaoEllipseBundle\Controller\ContentElement\EllipseKrellController;
+use Contao\StringUtil;
 
 /**
  * ============================================================================
@@ -34,7 +35,7 @@ $GLOBALS['TL_DCA']['tl_content']['palettes'][EllipseController::TYPE]
            ellipse_point_sequence,ellipse_line_thickness,ellipse_line_mode,
            ellipse_line_color,ellipse_cycle_color1,ellipse_cycle_color2,
            ellipse_cycle_color3,ellipse_cycle_color4,ellipse_cycle_color5,
-           ellipse_cycle_color6,
+           ellipse_cycle_color6,ellipse_cycle_colors,
            showEllipse,showCircle,template_selection_active;
        {template_legend:hide},customTpl;
        {protected_legend:hide},protected;
@@ -142,22 +143,116 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_color'] = [
 ];
 
 
-for ($i = 1; $i <= 6; $i++) {
-    $default = $defaultColors[$i] ?? '#000000'; // Fallback: Schwarz
+// abspeichern und lesen als json in der Form {"1":"blue","2":"green","3":"red","4":"&#35;ffff00","5":"&#35;ff00ff","6":"&#35;00ffff"}
+// als mit index
 
-    $GLOBALS['TL_DCA']['tl_content']['fields']["ellipse_cycle_color{$i}"] = [
-        'label'     => ["Zyklusfarbe {$i}", 'Nur bei Modus „zyklisch“'],
-        'exclude'   => true,
-        'inputType' => 'text',
-        'eval'      => [
-            'maxlength' => 64,
-            // abwechselnd w50 / w50 clr für saubere Darstellung
-            'tl_class'  => ($i % 2 === 0) ? 'w50' : 'w50 clr',
+
+$GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_cycle_colors'] = [
+    'label'     => ['Zykluswerte', 'Werte für den zyklischen Linienmodus (werden als JSON gespeichert)'],
+    'exclude'   => true,
+    'inputType' => 'multiColumnWizard',
+    'eval'      => [
+        'tl_class' => 'clr',
+        'columnFields' => [
+            'key' => [
+                'label' => ['Index'],
+                'inputType' => 'text',
+                'eval' => [
+                    'readonly' => true,
+                    'style' => 'width:40px;text-align:center;margin-right:5px;',
+                ],
+            ],
+            'value' => [
+                'label' => ['Wert'],
+                'inputType' => 'text',
+                'eval' => [
+                    'style' => 'width:100px;',
+                ],
+            ],
         ],
-        'sql'       => "varchar(64) NOT NULL default '{$default}'",
-    ];
-}
+    ],
+    'sql' => "text NULL",
 
+    // -------------------------------------------------------------
+    // 🔹 JSON → Array mit Keys & Werten (Anzeige im Backend)
+    // -------------------------------------------------------------
+    'load_callback' => [
+        static function ($value) use ($defaultColors) {
+            // JSON dekodieren
+            $decoded = json_decode((string)$value, true) ?? [];
+
+            // Wenn ungültig oder leer → Defaults verwenden
+            if (!is_array($decoded) || empty($decoded)) {
+                $decoded = $defaultColors;
+            }
+
+            // Fehlende Keys aus Defaults ergänzen
+            foreach ($defaultColors as $k => $v) {
+                if (!array_key_exists($k, $decoded)) {
+                    $decoded[$k] = '';
+                }
+            }
+
+            // Für MultiColumnWizard vorbereiten
+            $result = [];
+            foreach ($decoded as $key => $val) {
+                // 🔹 Platzhalter zurück in echten leeren String umwandeln
+                $result[] = [
+                    'key'   => $key,
+                    'value' => trim($val) === '' ? '' : trim($val),
+                ];
+            }
+
+            return $result;
+        },
+    ],
+
+    // -------------------------------------------------------------
+    // 🔹 Array → JSON mit Keys (Speicherung in DB)
+    // -------------------------------------------------------------
+    'save_callback' => [
+        static function ($value) use ($defaultColors) {
+            // Contao kann serialisierte Arrays übergeben
+            if (is_string($value) && str_starts_with(trim($value), 'a:')) {
+                $value = StringUtil::deserialize($value, true);
+            }
+
+            if (!is_array($value)) {
+                return json_encode($defaultColors, JSON_UNESCAPED_UNICODE);
+            }
+
+            $clean = [];
+
+            foreach ($value as $row) {
+                if (!isset($row['key'])) {
+                    continue;
+                }
+
+                $key = trim((string)$row['key']);
+                $val = isset($row['value']) ? trim((string)$row['value']) : '';
+
+                if ($key === '') {
+                    continue;
+                }
+
+                // 🔹 Leere Werte durch Leerzeichen ersetzen, damit Contao sie nicht verwirft
+                if ($val === '') {
+                    $val = ' ';
+                }
+
+                $clean[$key] = $val;
+            }
+
+            // Wenn komplett leer → Defaults speichern
+            if (empty($clean)) {
+                $clean = $defaultColors;
+            }
+
+            // JSON speichern
+            return json_encode($clean, JSON_UNESCAPED_UNICODE);
+        },
+    ],
+];
 
 // Ellipse anzeigen
 $GLOBALS['TL_DCA']['tl_content']['fields']['showEllipse'] = [

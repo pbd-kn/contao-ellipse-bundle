@@ -3,5 +3,11 @@
 /** @var Contao\BackendTemplate $this */
 ?>
 <div class="tl_wildcard">
-  <?= $this->wildcard ?>
+  <strong><?= $this->wildcard ?></strong><br>
+
+  <a href="<?= $this->href ?>" title="<?= $this->link ?>">
+    <?= $this->title ?>
+  </a>
+
+  <p>ID: <?= $this->id ?></p>
 </div>

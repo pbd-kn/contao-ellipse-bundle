@@ -1,16 +1,24 @@
 services:
   _defaults:
-    autowire: true      # Automatische Dependency Injection aktivieren
-    autoconfigure: true # Controller, Commands, etc. werden automatisch erkannt
+    autowire: true
+    autoconfigure: true
     public: false
 
-  # Alle Klassen im src/ Verzeichnis automatisch registrieren
+  # -----------------------------------------------------------
+  # 🔹 Alle Bundle-Klassen automatisch laden
+  # -----------------------------------------------------------
   PbdKn\ContaoEllipseBundle\:
     resource: '../../*'
     exclude:
-      - '../../Resources/contao'   # Contao-DCAs, Templates etc. ausschließen
-      - '../../Resources/config'
+      - '../../Resources/contao'   # DCA, Templates etc.
+      - '../../Resources/config'   # keine Rekursion
 
-  # Wenn du möchtest, dass der Helper explizit public ist (z. B. für Controller)
+
+  # -----------------------------------------------------------
+  # 🔹 Services explizit freigeben (z. B. für Controller)
+  # -----------------------------------------------------------
   PbdKn\ContaoEllipseBundle\Service\EllipseParameterHelper:
+    public: true
+
+  PbdKn\ContaoEllipseBundle\Service\LoggerService:
     public: true

@@ -1,27 +1,15 @@
-<form method="post" class="ellipse-save-form" style="margin-top:1em;">
-    <?php echo '<input type="hidden" name="REQUEST_TOKEN" value="' .
-        \Contao\System::getContainer()->get("contao.csrf.token_manager")->getDefaultTokenValue() . '">'; ?>
-
+<form method="post" action="<?= \Contao\Environment::get('uri'); ?>" class="ellipse-save-form" style="margin-bottom:1em;">
+    <!-- CSRF -->
+    <input type="hidden" name="REQUEST_TOKEN" value="<?= $this->csrfToken ?>">
     <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
     <input type="hidden" name="ceId" value="<?= $this->id ?>">
 
-    <input type="text" id="info_<?= $this->id ?>" name="info_<?= $this->id ?>"
-           placeholder="Erklärung hinzufügen" style="width:70%;">
+    <label for="info_<?= $this->id ?>"><strong>Titel / Info:</strong></label><br>
+    <input type="text" name="info_<?= $this->id ?>" id="info_<?= $this->id ?>" style="width:70%;padding:4px;" value=""><br><br>
 
-    <button type="submit" id="saveBtn_<?= $this->id ?>" name="saveEllipse_<?= $this->id ?>"
-            class="button-save" disabled>
-        Darstellung speichern
-    </button>
+    <button type="submit" class="button-save">💾 Speichern</button>
 </form>
 
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    const input = document.getElementById('info_<?= $this->id ?>');
-    const button = document.getElementById('saveBtn_<?= $this->id ?>');
-    if (input && button) {
-        const update = () => button.disabled = input.value.trim().length === 0;
-        update();
-        input.addEventListener('input', update);
-    }
-});
-</script>
+<?php if (isset($this->saveMessage)): ?>
+    <p class="<?= $this->saveSuccess ? 'save-ok' : 'save-warning' ?>"><?= $this->saveMessage ?></p>
+<?php endif; ?>

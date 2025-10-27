@@ -5,15 +5,15 @@ namespace PbdKn\ContaoEllipseBundle\Controller\ContentElement;
 use Contao\ContentModel;
 use Contao\CoreBundle\Controller\ContentElement\AbstractContentElementController;
 use Contao\CoreBundle\DependencyInjection\Attribute\AsContentElement;
-use PbdKn\ContaoEllipseBundle\Service\EllipseParameterHelper;
+use Contao\CoreBundle\Routing\ScopeMatcher;
+use Contao\CoreBundle\Csrf\ContaoCsrfTokenManager;
 use Contao\BackendTemplate;
 use Contao\StringUtil;
-use Contao\System;
 use Symfony\Component\HttpFoundation\Request;
-use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\RedirectResponse;
-use Contao\Database;
+use Symfony\Component\HttpFoundation\RequestStack;
+use PbdKn\ContaoEllipseBundle\Service\EllipseParameterHelper;
+use PbdKn\ContaoEllipseBundle\Service\LoggerService;
 
 #[AsContentElement(EllipseController::TYPE, category: 'Ellipse', template: 'ce_ellipse')]
 class EllipseController extends AbstractContentElementController
@@ -22,193 +22,309 @@ class EllipseController extends AbstractContentElementController
 
     public function __construct(
         private readonly EllipseParameterHelper $paramHelper,
-        private readonly RequestStack $requestStack
+        private readonly RequestStack $requestStack,
+        private readonly LoggerService $logger,
+        private readonly ScopeMatcher $scopeMatcher,
+        private readonly ContaoCsrfTokenManager $csrfTokenManager, // ✅ richtiger Typ
     ) {}
 
-    protected function getResponse($template, ContentModel $model, Request $request): Response
+    protected function getResponse(\Contao\CoreBundle\Twig\FragmentTemplate $template, ContentModel $model, Request $request): Response
     {
-    
-        $templateName = $model->ellipse_template ?: 'ce_ellipse';
-        //$request = $this->requestStack->getCurrentRequest();
+        //----------------------------------------------------------
+        // 🔹 1. Grunddaten + CSRF-Token
+        //----------------------------------------------------------
         $ceId = (int) $model->id;
-        $db = Database::getInstance();
+        $template->id = $ceId;
+        $post = $request->request;
+        $template->csrfToken = $this->csrfTokenManager->getDefaultTokenValue();
+        $this->logger->debugMe('CSRF-Token: ' . $template->csrfToken);
+       // Hilfsfunktion: GET > DB > Default
+        $val = function (string $key, string $dbField, $default = null) use ($request, $model, $ceId) {
+            // Einheitlicher Feldname mit CE-ID (z. B. "A_27")
+            $keyWithId = $key . '_' . $ceId;
+            // Zugriff auf alle möglichen Quellen
+            $get  = $request->query;   // GET-Parameter
+            $post = $request->request; // POST-Parameter
 
-        // === Backend-Wildcard ===
-        $scope = System::getContainer()->get('request_stack')?->getCurrentRequest()?->attributes?->get('_scope');
-        if ('backend' === $scope) {
-            $wildcard = new BackendTemplate('be_ellipse_wildcard');
+            // Wenn POST aktiv und Feld gesetzt → nimm POST-Wert
+            if ($request->isMethod('POST')) {
+                $fromPost = $post->get($keyWithId);
+                if ($fromPost !== null && $fromPost !== '') {
+$this->logger->debugMe("key $keyWithId from post $fromPost");
+                    return $fromPost;
+                }
+            }
+            // Wenn in GET vorhanden → nimm diesen Wert
+            $fromGet = $get->get($keyWithId);
+            if ($fromGet !== null && $fromGet !== '') {
+$this->logger->debugMe("key $keyWithId from get $fromGet");
+                return $fromGet;
+            }
+
+            // 3️⃣  Wenn Datenbankwert existiert → nimm DB-Wert
+            if (isset($model->{$dbField}) && $model->{$dbField} !== '') {
+$this->logger->debugMe("key $keyWithId from model ".$model->{$dbField});
+                return $model->{$dbField};
+             }
+
+            // 4️⃣  Fallback → Default
+$this->logger->debugMe("key $keyWithId from default $fromGet");
+            return $default;
+        };
+
+ 
+        //----------------------------------------------------------
+        // 🔹 2. Backend-Wildcard
+        //----------------------------------------------------------
+        if ($this->scopeMatcher->isBackendRequest($request)) {
+            $be = new BackendTemplate('be_ellipse_wildcard');
             $headline = StringUtil::deserialize($model->headline);
-            $wildcard->title = $headline['value'] ?? 'Ellipse';
-            $wildcard->id = $ceId;
-            $wildcard->href = 'contao?do=themes&table=tl_content&id=' . $ceId;
-            $wildcard->wildcard = "### Ellipse Template: $templateName ###<br>ID: $ceId";
-            return new Response($wildcard->parse());
+            $headlineText = is_array($headline)
+                ? ($headline['value'] ?? 'Ellipse')
+                : (string) $headline;
+            $be->title = $headlineText;
+            $be->wildcard = '### ELLIPSE ### ID ' . $model->id;
+            return $be->getResponse();
         }
 
-        $template = $this->createTemplate($model, $templateName);
+        //----------------------------------------------------------
+        // 🔹 5. POST-Handling
+        //----------------------------------------------------------
+        $this->logger->debugMe("Request");
+            //----------------------------------------------------------
+            // 🔹 3. Initiale Template-Werte
+            //----------------------------------------------------------
+        if ($request->isMethod('POST')) {
+            $postData=$post->all();
+            $this->logger->debugDumpMe($postData, "postdata val");
+        }
+        $A  = (float) $val('A', 'ellipse_x', 100);
+        $B  = (float) $val('B', 'ellipse_y', 60);
+        $Umdrehungen  = (float) $val('Umdrehungen', 'ellipse_umlauf', 1);
+        $Schrittweite  = (float) $val('Schrittweite', 'ellipse_schrittweite_pkt', 30);
+        $ReihenfolgePkt  = (int) $val('ReihenfolgePkt', 'ellipse_point_sequence', 1);
+        $lineWidth  = (float) $val('lineWidth', 'ellipse_line_thickness', 1);
+        $lineColor  = $val('lineColor', 'ellipse_line_color', 'blue');
+        $lineMode  = $val('lineMode', 'ellipse_line_mode', 'fixed');
+        $showEllipse  = (bool) $val('showEllipse', 'showEllipse', 'true');
+        $showCircle  = (bool) $val('showCircle', 'showCircle', 'true');
+        $templateSelectionActive  = (bool) $val('templateSelectionActive', 'template_selection_active', 'false');
+        $cycleColorsRaw = $val('cycleColors', 'cycleColors', json_encode(['red','green','blue','orange','purple','cyan']));
+        $cycleColors = is_string($cycleColorsRaw) ? json_decode($cycleColorsRaw, true) : (array) $cycleColorsRaw;
 
-        // === Parameter via Helper laden ===
-        $params = $this->paramHelper->getParameterSet($request, $model, $ceId, [
-            'A' => ['field' => 'ellipse_x', 'default' => 400, 'type' => 'int'],
-            'B' => ['field' => 'ellipse_y', 'default' => 200, 'type' => 'int'],
-            'Umdrehungen' => ['field' => 'ellipse_umlauf', 'default' => 1, 'type' => 'float'],
-            'Schrittweite' => ['field' => 'ellipse_schrittweite_pkt', 'default' => 1, 'type' => 'float', 'min' => 0.1],
-            'R' => ['field' => 'ellipse_point_sequence', 'default' => 20, 'type' => 'int'],
-            'templateSelectionActive' => ['field' => 'templateSelectionActive', 'default' => 0, 'type' => 'bool'],
-            'showEllipse' => ['field' => 'showEllipse', 'default' => 0, 'type' => 'bool'],
-            'showCircle'  => ['field' => 'showCircle', 'default' => 0, 'type' => 'bool'],
-            'lineWidth' => ['field' => 'ellipse_line_thickness', 'default' => 3, 'type' => 'float'],
-            'lineMode' => ['field' => 'ellipse_line_mode', 'default' => 'fixed', 'type' => 'string'],
-            'lineColor' => ['field' => 'ellipse_line_color', 'default' => 'red', 'type' => 'string'],
-        ]);
+        // Falls JSON ungültig war oder leer
+        if (empty($cycleColors) || !is_array($cycleColors)) {
+            $this->logger->debugMe('cyclecolors undefined');
+            $cycleColors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan'];
+        }        
+        $this->logger->debugDumpMe($cycleColors,'init cyclecolors');
+        $isPost = $request->isMethod('POST');
+        if ($isPost) {
+            $formSubmit = (string) $post->get('FORM_SUBMIT');
+            $this->logger->debugMe("POST erkannt: $formSubmit");
 
-        $errors = $params['_errors'] ?? [];
 
-        // === Zyklusfarben ===
-        $cycleColors = [];
-        if ($params['lineMode'] !== 'fixed') {
-            for ($i = 1; $i <= 6; $i++) {
-                $key = "cycleColor{$i}_{$ceId}";
-                if ($request->query->has($key)) {
-                    $color = trim((string) $request->query->get($key));
-                    if ($color !== '') $cycleColors[] = $color;
+            //--------------------------------------------------
+            // 🔸 „Konfiguration anzeigen/ausblenden“
+            //--------------------------------------------------
+            if ($formSubmit === 'ellipse_toggle_' . $ceId) {
+                $template->templateSelectionActive = (bool) $post->get('templateSelectionActive_' . $ceId);
+            }
+
+            // Punkte neu berechnen
+            $points = $this->createEllipsePoints( $A, $B, $Umdrehungen, $Schrittweite );
+            $this->logger->debugMe('🌀 Ellipse neu berechnet');
+
+            //--------------------------------------------------
+            // 🔸 „Speichern“
+            //--------------------------------------------------
+            if ($formSubmit === 'ellipse_save_' . $ceId) {
+                $blacklist = ['REQUEST_TOKEN', 'FORM_SUBMIT','ceId'];
+                $info = trim($post->get('info'));
+                $postData=$post->all();
+                foreach ($blacklist as $field) {
+                    unset($postData[$field]); // kein Problem, auch wenn 'password' oder 'token' fehlen
+                }
+                
+                    // 🔹 CE-ID-Suffix aus Keys entfernen also z.b Umderhungen_28 -> Umdrehungen
+                $cleanData = [];
+                foreach ($postData as $key => $value) {
+                    $newKey = preg_replace('/_' . preg_quote($ceId, '/') . '$/', '', $key);
+                    $cleanData[$newKey] = $value;
+                }
+                $postData = $cleanData;
+                $this->logger->debugDumpMe($postData,'Speichern POSTDATA');
+                $params = json_encode($postData, JSON_UNESCAPED_UNICODE);
+                $saveData = ['pid' => $ceId, 'title' => $info ?: 'Ohne Titel', 'parameters' => $params];
+                $this->logger->debugDumpMe($saveData,'Speichern saveData');
+                $result = $this->paramHelper->saveParameterSet('tl_ellipse_save', $saveData, $ceId);
+                $saveSuccess = in_array($result['status'], ['inserted', 'updated']);
+                $saveMessage = $result['message'] ?? 'Speicherfehler.';
+                // ✅ Nur bei „inserted“ erweitern:
+                if ($result['status'] === 'inserted') {
+                    $saveMessage = "$info wurde gespeichert. $saveMessage";   
+                }
+                $A=$postData['A'];
+                $B=$postData['B'];
+                $Umdrehungen=$postData['Umdrehungen'];
+                $Schrittweite=$postData['Schrittweite'];
+                $ReihenfolgePkt=$postData['ReihenfolgePkt'];
+                $lineWidth=$postData['lineWidth'];
+                $lineColor=$postData['lineColor'];
+                $lineMode=$postData['lineMode'];
+                $cycleColorsPost=$postData['cycleColors'];
+                /*
+                 * liefert als $cycleColors als richtige array zurück
+                 */
+                if (is_string($cycleColorsPost)) {
+                    $decoded = json_decode($cycleColorsPost, true);
+                    $cycleColors = (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) ? $decoded: ['red', 'green', 'blue', 'orange', 'purple', 'cyan'];
                 } else {
-                    $dbField = "ellipse_cycle_color{$i}";
-                    $color = (string) ($model->{$dbField} ?? '');
-                    if (trim($color) !== '') $cycleColors[] = trim($color);
+                    $cycleColors = is_array($cycleColorsPost) ? $cycleColorsPost : ['red', 'green', 'blue', 'orange', 'purple', 'cyan'];
                 }
             }
-            if (count($cycleColors) === 0) {
-                $cycleColors = ["blue", "green", "red", "orange", "purple", "brown"];
-            }
-            $params['cycleColors']=$cycleColors;
-        }
-        // ---------------------------------------------------------------------
-        // 🟢 SPEICHERN (über Helper)
-        // ---------------------------------------------------------------------
-        if ($request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_save_' . $ceId) {
-            $info = trim($request->request->get('info_' . $ceId));
 
-            $saveData = [
-                'title'      => $info ?: 'Ohne Titel',
-                'parameters' => json_encode($params),
-            ];
-
-            //$result = $this->paramHelper->saveParameterSet('tl_ellipse_save', $saveData, $ceId);
-            $result = $this->paramHelper->saveParameterSet('tl_ellipse_save', $saveData);                         // ohne contenid
-
-            $template->saveSuccess = in_array($result['status'], ['inserted']);
-            $template->saveMessage = $result['message'] ?? 'Speicherfehler.';
-            if ($result['status'] === 'db_error' && !empty($result['exception'])) {
-                $template->saveMessage .= '<br><small style="color:#555">'
-                    . htmlspecialchars($result['exception'])
-                    . '</small>';
-            }
-        }
-        
-        // ---------------------------------------------------------------------
-        // 🔵 LADEN (Anzeige gespeicherter Darstellung)
-        // ---------------------------------------------------------------------
-
-        // ✅ Liste der Darstellung über Helper abrufen
-        $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save', $ceId);
-        $template->savedVariants = $listResult['items'] ?? [];
-        //die ("varianten: ".count($listResult['items']));
-        
-        // Darstellung laden per POST
-        if ( $request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_load_' . $ceId && $request->request->get('loadAction') === 'load' ) {
-            $variantId = (int)$request->request->get('loadVariant');
-            if ($variantId > 0) {
-                // ✅ Helper verwenden
-                $loadResult = $this->paramHelper->loadParameterSet('tl_ellipse_save', $variantId);
-
-                if ($loadResult['status'] === 'loaded') {
-                    $params = $loadResult['parameters']; // 👉 wichtig: ersetzt alte Werte
-                    if (isset($params['cycleColors'])) $cycleColors=$params['cycleColors'];   // wird unten ins template übernommen
-//die ("laden ".var_dump($params));
-                    $template->loadedParameters = $loadResult['parameters'];
-                    $template->loadedId = $variantId;
-                    $template->loadMessage = $loadResult['message'];
+            //--------------------------------------------------
+            // 🔸 „Laden“
+            //--------------------------------------------------
+            if ($formSubmit === 'ellipse_load_' . $ceId && $post->get('loadAction') === 'load') {
+                $loadId = (int) $post->get('variantId');
+                $data = $this->paramHelper->loadParameterSet('tl_ellipse_save', $loadId);
+                if ($data && !empty($data['parameters'])) {
+                    // Parameter aus dem Ergebnis holen
+                    $parameters = $data['parameters'];
+                    $this->logger->debugDumpMe($parameters,"geladene parameter");
+                    foreach ($parameters as $key => $value) {
+                        // 🧩 Automatische JSON-Erkennung und Dekodierung
+                        if (is_string($value)) {
+                            $trimmed = trim($value);
+                            if (
+                                (str_starts_with($trimmed, '{') && str_ends_with($trimmed, '}')) ||
+                                (str_starts_with($trimmed, '[') && str_ends_with($trimmed, ']'))
+                            ) {
+                                $decoded = json_decode($value, true);
+                                if (json_last_error() === JSON_ERROR_NONE) {
+                                $this->logger->debugMe("key $key json");
+                                    $value = $decoded;
+                                    $this->logger->debugDumpMe($value,"JSON erkannt und dekodiert");
+                                } else {
+                                    $this->logger->debugMe("Fehler beim Dekodieren von $key: " . json_last_error_msg());
+                                }
+                            }
+                        }
+                        ${$key} = $value;
+                        // Ausgabe / Logging – egal ob String, Array oder Objekt:
+                        if (is_array(${$key}) || is_object(${$key})) {
+                            $dump = print_r(${$key}, true);
+                        } else {
+                            $dump = (string) ${$key};
+                        }
+                        $this->logger->debugMe("Variable \$$key erzeugt mit Wert:\n$dump");                    
+                    }
+                    // Lade-Metadaten setzen
+                    $loadSuccess = true;
+                    $info=$parameters['info'] ?? ($data['title'] ?? 'Ohne Titel');
+                    $loadMessage = "Darstellung geladen. Titel $info";
+                    $points = $this->createEllipsePoints( $A, $B, $Umdrehungen, $Schrittweite );
                 } else {
-                    $template->loadMessage = $loadResult['message'];
+                    $loadSuccess = false;
+                    $loadMessage = 'Fehler beim Laden. '.$data['message'];
                 }
-           } else {
-                $template->loadMessage = "Keine Darstellung ausgewählt.";
             }
+
+
+            //--------------------------------------------------
+            // 🔸 „Löschen“
+            //--------------------------------------------------
+            if ($formSubmit === 'ellipse_load_' . $ceId && $post->get('loadAction') === 'delete') {
+                $delId = (int) $post->get('variantId');
+                $deleteResult = $this->paramHelper->deleteParameterSet('tl_ellipse_save', [
+                    'id'  => $delId,
+                    'pid' => $ceId,
+                ]);
+                $loadMessage = $deleteResult['message'];
+                $loadSuccess = $deleteResult['success'];
+            }
+
+            //----------------------------------------------------------
+            // 🔹 6. Variantenliste laden
+            //----------------------------------------------------------
+            $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save');
+            $template->savedVariants = $listResult['items'] ?? [];
+
+        
+            //----------------------------------------------------------
+            // 🔹 7. Punkte erzeugen (Fallback)
+            //----------------------------------------------------------
+            if (empty($points)) {
+                    $points = $this->createEllipsePoints($A, $B, $Umdrehungen, $Schrittweite );
+            }
+
+            //----------------------------------------------------------
+            // 🔹 8. ViewBox
+            //----------------------------------------------------------
+            $viewBox = sprintf('-%d -%d %d %d', $A + 10, $B + 10, ($A + 10) * 2, ($B + 10) * 2 );
+            // ----------------------------------------------------------
+            // 🔹 Template-Variablen ermitteln (ohne LoggerService umbauen)
+            // ----------------------------------------------------------
+// 🔹 fügt CSS im <head> hinzu
+        $GLOBALS['TL_HEAD'][] = '<link rel="stylesheet" href="/bundles/pbdkncontaoellipse/css/ellipse.css">';
+                    $template->A = $A ?? null;
+            $template->B = $B ?? null;
+            $template->Umdrehungen = $Umdrehungen ?? null;
+            $template->Schrittweite = $Schrittweite ?? null;
+            $template->ReihenfolgePkt = $ReihenfolgePkt ?? null;
+            $template->lineWidth   = $lineWidth ?? null;
+            $template->lineColor   = $lineColor ?? null;
+            $template->lineMode    = $lineMode ?? null;
+            $template->templateSelectionActive = $templateSelectionActive ?? null;
+            $template->showEllipse = $showEllipse ?? null;
+            $template->showCircle  = $showCircle ?? null;
+            $template->cycleColors = $cycleColors ?? null;
+            $template->viewBox     = $viewBox ?? null;
+            $template->errorMsg    = $errorMsg ?? null;
+            $template->saveSuccess   = $saveSuccess ?? null;
+            $template->saveMessage   = $saveMessage ?? null;
+            $template->loadSuccess   = $loadSuccess ?? null;
+            $template->loadMessage   = $loadMessage ?? null;
+            $template->points = $points ?? null;
+            $this->logger->debugDumpMe([
+                'A' => $template->A,
+                'B' => $template->B,
+                'Umdrehungen' => $template->Umdrehungen ?? null,
+                'Schrittweite' => $template->Schrittweite ?? null,
+                'ReihenfolgePkt' => $template->ReihenfolgePkt ?? null,
+                'lineWidth' => $template->lineWidth ?? null,
+                'lineColor' => $template->lineColor ?? null,
+                'lineMode' => $template->lineMode ?? null,
+                'showEllipse' => $template->showEllipse ?? null,
+                'showCircle' => $template->showCircle ?? null,
+                'cycleColors' => $template->cycleColors ?? null,
+                'saveSuccess' => $template->saveSuccess ?? null,
+                'saveMessage' => $template->saveMessage ?? null,
+                'loadSuccess' => $template->loadSuccess ?? null,
+                'loadMessage' => $template->loadMessage ?? null,
+                'errorMsg' => $template->errorMsg ?? null,
+            ],'GETRESPONSE TEMPLATE');
         }
-        $grenzWinkel = $params['Umdrehungen'] * 360;
 
-        // === SVG-Berechnung ===
-        $points = [];
-        for ($angle = 0; $angle < $grenzWinkel; $angle += $params['Schrittweite']) {
-            $rad = deg2rad($angle);
-            $x = round($params['A'] * cos($rad), 2);
-            $y = round($params['B'] * sin($rad), 2);
-            $points[] = ['x' => $x, 'y' => $y];
-        }
-
-        $viewBox = sprintf(
-            "-%d -%d %d %d",
-            $params['A'] + 20,
-            $params['B'] + 20,
-            2 * ($params['A'] + 20),
-            2 * ($params['B'] + 20)
-        );
-
-
-
-        // ---------------------------------------------------------------------
-        // 🔴 LÖSCHEN 
-        // ---------------------------------------------------------------------
-        if ( $request->isMethod('POST') && $request->request->get('FORM_SUBMIT') === 'ellipse_load_' . $ceId && $request->request->get('loadAction') === 'delete') {
-            $delId = (int) $request->request->get('loadVariant');
-             // ✅ Helper aufrufen – Rückgabe ist jetzt ein Array
-            $deleteResult = $this->paramHelper->deleteParameterSet('tl_ellipse_save', [
-                'id'  => $delId,
-            ]);
-
-            // ✅ Status & Nachricht auswerten
-            $status = $deleteResult['status'] ?? 'error';
-            $count  = $deleteResult['count'] ?? 0;
-            $msg    = $deleteResult['message'] ?? 'Unbekannter Fehler.';
-
-            // ✅ Rückmeldung an Template
-            $template->saveSuccess = ($status === 'deleted');
-            $template->saveMessage = match ($status) {
-                'deleted'   => "Eintrag #$delId erfolgreich gelöscht ({$count} Zeile).",
-                'not_found' => "Eintrag #$delId wurde nicht gefunden.",
-                'db_error'  => "Fehler beim Löschen: {$msg}",
-                default     => $msg,
-            };
-        }
-
-
-
-
-        // ---------------------------------------------------------------------
-        // Template befüllen
-        // ---------------------------------------------------------------------
-        $headline = StringUtil::deserialize($model->headline);
-        $template->headlineHtml = $headline
-            ? sprintf('<%1$s>%2$s</%1$s>', $headline['unit'] ?? 'h2', $headline['value'] ?? '')
-            : '';
-
-        $template->A = $params['A'];
-        $template->B = $params['B'];
-        $template->R = $params['R'];
-        $template->Umdrehungen = $params['Umdrehungen'];
-        $template->Schrittweite = $params['Schrittweite'];
-        $template->showEllipse = $params['showEllipse'];
-        $template->showCircle = $params['showCircle'];
-        $template->lineWidth = $params['lineWidth'];
-        $template->lineMode = $params['lineMode'];
-        $template->lineColor = $params['lineColor'];
-        $template->cycleColors = $cycleColors;
-        $template->templateSelectionActive = $params['templateSelectionActive'];
-        $template->viewBox = $viewBox;
-        $template->points = $points;
-        $template->errors = $errors;
-
+        //----------------------------------------------------------
+        // ✅ Ausgabe
+        //----------------------------------------------------------
         return $template->getResponse();
+    }
+
+    //----------------------------------------------------------
+    // 🔹 Hilfsfunktion 
+    //----------------------------------------------------------
+    private function createEllipsePoints(float $A, float $B, float $Umdrehungen, float $Schrittweite): array
+    {
+        $points = [];
+        $max = 360 * $Umdrehungen;
+        for ($t = 0; $t < $max; $t += $Schrittweite) {
+            $rad = deg2rad($t);
+            $points[] = ['x' => $A * cos($rad), 'y' => $B * sin($rad)];
+        }
+        return $points;
     }
 }

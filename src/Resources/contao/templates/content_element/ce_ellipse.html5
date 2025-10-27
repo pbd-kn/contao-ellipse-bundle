@@ -1,334 +1,259 @@
-<div class="ce_ellipse" id="ce-<?= $this->id ?>">
-    <?= $this->headlineHtml ?>
-<!-- Formular mit Checkbox -->
+<?php
+// 🔹 Hilfsfunktion zur Ausgabe aller Hidden-Felder
+function renderEllipseHiddenFields($context)
+{
+    $id = $context->id;
 
-
-    <!-- Parameter-Dialog -->
-    <dialog id="ellipseDialog_<?= $this->id ?>" class="ellipse-dialog">
-        <form method="get" id="ellipseForm_<?= $this->id ?>">
-            <div class="dialog-drag-handle">Ziehen zum Verschieben</div>            <h3>Parameter anpassen</h3>
-            <input type="hidden" name="ceId" value="<?= $this->id ?>">
-            <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="<?= $this->templateSelectionActive ? 1 : 0 ?>">
-
-            <!-- Geometrie -->
-            <fieldset>
-                <legend>Geometrie</legend>
-                <div class="form-row"><label>Halbachse A</label><input type="number" step="any" name="A_<?= $this->id ?>" value="<?= $this->A ?>"></div>
-                <div class="form-row"><label>Halbachse B</label><input type="number" step="any" name="B_<?= $this->id ?>" value="<?= $this->B ?>"></div>
-                <div class="form-row"><label>Umdrehungen</label><input type="number" step="any" name="Umdrehungen_<?= $this->id ?>" value="<?= $this->Umdrehungen ?>"></div>
-                <div class="form-row"><label>Punktschrittweite</label><input type="number" step="any" name="Schrittweite_<?= $this->id ?>" value="<?= $this->Schrittweite ?>"></div>
-                <div class="form-row"><label>Reihenfolge Pkt</label><input type="number" step="any" name="R_<?= $this->id ?>" value="<?= $this->R ?>"></div>
-            </fieldset>
-            <!-- Darstellung -->
-            <fieldset>
-                <legend>Darstellung</legend>
-                <div class="form-row"><label>Linienstärke</label><input type="number" step="any" name="lineWidth_<?= $this->id ?>" value="<?= $this->lineWidth ?>"></div>
-                <div class="form-row">
-                    <label>Linienmodus</label>
-                    <select name="lineMode_<?= $this->id ?>" id="lineMode_<?= $this->id ?>" onchange="toggleCycleColors(<?= $this->id ?>)">
-                        <option value="fixed" <?= $this->lineMode == 'fixed' ? 'selected' : '' ?>>Feste Farbe</option>
-                        <option value="cycle" <?= $this->lineMode == 'cycle' ? 'selected' : '' ?>>Zyklische Farben</option>
-                    </select>
-                </div>
-                <div class="form-row"><label>Farbe (fest)</label><input type="text" name="lineColor_<?= $this->id ?>" value="<?= $this->lineColor ?>"></div>
-            </fieldset>
-            <!-- Zyklische Farben -->
-            <fieldset id="cycleColors_<?= $this->id ?>" class="color-fieldset">
-                <legend>Zyklische Farben</legend>
-                <div class="color-grid">
-                    <?php for ($i = 1; $i <= 6; $i++): $val = $this->cycleColors[$i - 1] ?? ''; ?>
-                    <div class="color-cell"><label>Farbe <?= $i ?></label><input type="text" name="cycleColor<?= $i ?>_<?= $this->id ?>" value="<?= $val ?>"></div>
-                    <?php endfor; ?>
-                </div>
-            </fieldset>
-            <!-- Optionen -->
-            <fieldset>
-                <legend>Optionen</legend>
-                <div class="form-row">
-                    <label><input type="checkbox" name="showEllipse_<?= $this->id ?>" value="1" <?= $this->showEllipse ? 'checked' : '' ?>> Ellipse anzeigen</label>
-                </div>
-                <div class="form-row">
-                    <label><input type="checkbox" name="showCircle_<?= $this->id ?>" value="1" <?= $this->showCircle ? 'checked' : '' ?>> Punkte anzeigen</label>
-                </div>
-            </fieldset>
-            <div class="form-actions">
-                <button type="submit" onclick="this.closest('dialog').close()">Neu zeichnen</button>
-                <button type="button" onclick="closeEllipseDialog(<?= $this->id ?>)">Konfiguration Schließen</button>
-                <button type="button" onclick="toggleHelp(<?= $this->id ?>, true)">❓ Hilfe</button>
-            </div>
-        </form>
-
-        <!-- Hilfe-Popup -->
-        <div id="help-popup-<?= $this->id ?>" class="help-popup" onclick="toggleHelp(<?= $this->id ?>, false)">
-            <div id="help-content-<?= $this->id ?>" class="help-content" onclick="event.stopPropagation()">
-                <h3>Hilfe zu den Parametern</h3>
-                <ul>
-                    <li><b>A</b>: Halbachse A (dez.)</li>
-                    <li><b>B</b>: Halbachse B (dez.)</li>
-                    <li><b>Umdrehungen</b>: Anzahl der Umdrehungen</li>
-                    <li><b>Schrittweite</b>: Abstand der Punkte</li>
-                    <li><b>Reihenfolge</b>: Verbindungsreihenfolge</li>
-                    <li><b>Linienstärke</b>: Dicke der Linien</li>
-                    <li><b>Linienmodus</b>: Feste oder zyklische Farben</li>
-                    <li><b>Farbe</b>: wird die Farbe als Text angebenen, so muss sie existierern<br>sonst erfolgt keine Anzeige</li>
-                    <li><b>Farbe bei fest</b>: Linienfarbe (engl. oder #rrggbb)</li>
-                    <li><b>Zyklische Farben</b>: Die Linien werden in der Reihenfolge verschiedenfarbig ausgegeben.</li>
-                    <li><b>Debug</b>: Ellipse/Punkte anzeigen + Debug Info</li>
-
-                </ul>
-                <button onclick="toggleHelp(<?= $this->id ?>, false)">Schließen</button>
-            </div>
-        </div>
-    </dialog>
-
-    <!-- Aktionsbuttons außerhalb des Dialogs -->
-    <?php include __DIR__ . '/../partials/action_buttons.html5'; ?>
-    <!-- Konfigurations button außerhalb des Dialogs -->
-    <p></p>
-    <form method="get" id="ellipse-form-<?= $this->id ?>" class="ellipse-form">
-        <input type="hidden" name="ceId" value="<?= $this->id ?>">
-        <div>
-            <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="0">
-            <input type="checkbox"
-                name="templateSelectionActive_<?= $this->id ?>"
-                id="templateSelectionActive_<?= $this->id ?>"
-                value="1"
-                <?= $this->templateSelectionActive ? 'checked' : '' ?>
-                onchange="document.getElementById('ellipse-form-<?= $this->id ?>').submit()">
-            <label for="templateSelectionActive_<?= $this->id ?>"><strong>Konfiguration anzeigen</strong></label>
-        </div>
-    </form>
-    
-    <!-- ====================================== -->
-    <!-- 🔹 Umschalter & Formular (Save) -->
-    <!-- ====================================== -->
-    <?php $showSaveForm = $showSaveForm ?? !empty($this->saveMessage); ?>    
-    <label style="display:block; margin:1em 0;">
-        <input type="checkbox" id="toggleSaveForm_<?= $this->id ?>"<?= $showSaveForm ? 'checked' : '' ?> >
-        <strong>Darstellung speichern</strong>
-    </label>
-
-    <!-- ✅ Erfolgsmeldung oberhalb des Formulars -->
-    <?php if (isset($this->saveMessage)): ?>
-        <?php $cl = $this->saveSuccess ? 'save-ok' : 'save-warning'; ?>
-        <p class="<?= $cl ?>" style="margin:0.5em 0; padding:0.3em; border:1px solid #ccc; background:#f7f7f7;"><?= $this->saveMessage ?></p>
-    <?php endif; ?>
-
-    <!-- ✅ Formular (nur sichtbar, wenn Checkbox aktiv oder Meldung vorhanden) -->
-    <div id="saveFormWrapper_<?= $this->id ?>" style="display:<?= $showSaveForm ? 'block' : 'none' ?>;">
-        <?php include __DIR__ . '/../partials/form_save.html5'; ?>
-    </div>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const checkbox = document.getElementById('toggleSaveForm_<?= $this->id ?>');
-            const wrapper  = document.getElementById('saveFormWrapper_<?= $this->id ?>');
-                if (checkbox && wrapper) {
-                checkbox.addEventListener('change', () => {
-                    wrapper.style.display = checkbox.checked ? 'block' : 'none';
-                });
-            }
-        });
-    </script>
-
-    <?php $showLoadForm = $showLoadForm ?? !empty($this->loadMessage); ?>
-    <label style="display:block; margin:1em 0;">
-        <input type="checkbox" id="toggleLoadForm_<?= $this->id ?>" <?= $showLoadForm ? 'checked' : '' ?> >
-        <strong>Darstellung laden/löschen</strong>
-    </label>
-
-    <!-- ✅ Erfolgsmeldung (nur sichtbar, wenn Checkbox aktiv oder Meldung vorhanden) -->
-    <?php if (isset($this->loadMessage)): ?>
-        <?php $cl = $this->loadSuccess ? 'save-ok' : 'save-warning'; ?>
-        <p class="<?= $cl ?>" style="margin:0.5em 0; padding:0.3em; border:1px solid #ccc; background:#f7f7f7;"> <?= $this->loadMessage ?></p>
-    <?php endif; ?>
-
-
-    <div id="loadFormWrapper_<?= $this->id ?>" style="display:<?= $showLoadForm ? 'block' : 'none' ?>;">
-        <?php include __DIR__ . '/../partials/form_load.html5'; ?>    <!-- Neues Formular: Gespeicherte Darstellungen: Laden/Löschen -->
-    </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const checkbox = document.getElementById('toggleLoadForm_<?= $this->id ?>');
-            const wrapper  = document.getElementById('loadFormWrapper_<?= $this->id ?>');
-            if (checkbox && wrapper) {
-                checkbox.addEventListener('change', () => {
-                    wrapper.style.display = checkbox.checked ? 'block' : 'none';
-                });
-            }
-        });
-    </script>
-
-    
-    
-
-    <!-- SVG-Anzeige -->
-    <div id="svg-container-<?= $this->id ?>">
-        <svg id="ellipse-svg-<?= $this->id ?>" xmlns="http://www.w3.org/2000/svg" viewBox="<?= $this->viewBox ?>" preserveAspectRatio="xMidYMid meet">
-            <defs>
-                <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto" markerUnits="strokeWidth">
-                    <polygon points="0 0, 10 3.5, 0 7" fill="black" />
-                </marker>
-            </defs>
-        <?php 
-            $lineWidth = $this->lineWidth;
-            $n = count($this->points);
-            foreach ($this->points as $i => $p) {
-                $j = ($i + $this->R) % count($this->points);
-                $x1 = $this->points[$i]['x'];
-                $y1 = -$this->points[$i]['y'];
-                $x2 = $this->points[$j]['x'];
-                $y2 = -$this->points[$j]['y'];
-                if ($this->lineMode === "cycle") {
-                    if ( count($this->cycleColors) == 0) $color = $this->lineColor;
-                    else                             $color = $this->cycleColors[$i % count($this->cycleColors)];
-                } else { $color = $this->lineColor; }
-                if ($this->showCircle) {
-                    echo "<line x1='$x1' y1='$y1' x2='$x2' y2='$y2' stroke='$color' stroke-width='$lineWidth' marker-end='url(#arrowhead)' />";
-                } else {
-                    echo "<line x1='$x1' y1='$y1' x2='$x2' y2='$y2' stroke='$color' stroke-width='$lineWidth' />";
-                }
-            }
-            if ($this->showEllipse) {
-                echo "<ellipse cx='0' cy='0' rx='".$this->A."' ry='".$this->B."' stroke='red' stroke-width='$lineWidth' fill='none' />";
-            }
-            if ($this->showCircle) {
-                foreach ($this->points as $idx => $p) {
-                    $x = $p['x']; $y = -$p['y'];
-                    echo "<circle cx='$x' cy='$y' r='0.1' fill='none' stroke='black' stroke-width='$lineWidth'/>";
-                    if ($n <= 200) {
-                        echo "<text x='$x' y='$y' font-size='5' font-family='Arial, sans-serif' fill='black' >". $idx+1 ."</text>";
-                    }
-            }
+    // 🟩 Sicherstellen, dass cycleColors korrekt ist
+    $colors = $context->cycleColors ?? [];
+    if (is_string($colors)) {
+        $decoded = json_decode($colors, true);
+        if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+            $colors = $decoded;
+        } else {
+            $colors = ['red', 'green', 'blue', 'orange', 'purple', 'cyan'];
         }
+    }
 
-        ?>
-        </svg>
+    $colorsJson = json_encode($colors, JSON_UNESCAPED_UNICODE);
+
+    return '
+        <input type="hidden" name="REQUEST_TOKEN" value="' . htmlspecialchars($context->csrfToken, ENT_QUOTES) . '">
+        <input type="hidden" name="ceId" value="' . htmlspecialchars($id, ENT_QUOTES) . '">
+        <input type="hidden" name="A_' . $id . '" value="' . htmlspecialchars($context->A, ENT_QUOTES) . '">
+        <input type="hidden" name="B_' . $id . '" value="' . htmlspecialchars($context->B, ENT_QUOTES) . '">
+        <input type="hidden" name="Umdrehungen_' . $id . '" value="' . htmlspecialchars($context->Umdrehungen, ENT_QUOTES) . '">
+        <input type="hidden" name="Schrittweite_' . $id . '" value="' . htmlspecialchars($context->Schrittweite, ENT_QUOTES) . '">
+        <input type="hidden" name="ReihenfolgePkt_' . $id . '" value="' . htmlspecialchars($context->ReihenfolgePkt, ENT_QUOTES) . '">
+        <input type="hidden" name="lineWidth_' . $id . '" value="' . htmlspecialchars($context->lineWidth, ENT_QUOTES) . '">
+        <input type="hidden" name="lineColor_' . $id . '" value="' . htmlspecialchars($context->lineColor, ENT_QUOTES) . '">
+        <input type="hidden" name="lineMode_' . $id . '" value="' . htmlspecialchars($context->lineMode, ENT_QUOTES) . '">
+        <input type="hidden" name="cycleColors_' . $id . '" value=\'' . htmlspecialchars($colorsJson, ENT_QUOTES) . '\'>
+        <input type="hidden" name="templateSelectionActive_' . $id . '" value=\'' . htmlspecialchars($context->templateSelectionActive, ENT_QUOTES) . '\'>
+    ';
+}
+?>
+
+<div class="ce_ellipse" id="ce-<?= $this->id ?>">
+<?= $this->headlineHtml ?>
+
+<form method="post" class="ellipse-form" action="<?= \Contao\Environment::get('uri'); ?>" id="ellipseForm_<?= $this->id ?>">
+    <input type="hidden" name="REQUEST_TOKEN" value="<?= $this->csrfToken ?>">
+    <input type="hidden" name="FORM_SUBMIT" value="ellipse_form_<?= $this->id ?>">
+    <input type="hidden" name="ceId" value="<?= $this->id ?>">
+
+    <div>
+        <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="0">
+        <input type="checkbox"
+               id="templateSelectionActive_<?= $this->id ?>"
+               name="templateSelectionActive_<?= $this->id ?>"
+               value="1"
+               <?= $this->templateSelectionActive ? 'checked' : '' ?>
+               onchange="toggleConfigSection(<?= $this->id ?>)">
+        <label for="templateSelectionActive_<?= $this->id ?>"><strong>Darstellung konfigurieren</strong></label>
+    </div>
+
+    <!-- Parameter-Bereich ein-/ausklappbar -->
+    <div id="configSection_<?= $this->id ?>" class="ellipse-config-section" style="<?= $this->templateSelectionActive ? '' : 'display:none;' ?>">
+
+        <h3>Parameter anpassen</h3>
+
+        <!-- Geometrie -->
+        <fieldset>
+            <legend>Geometrie</legend>
+            <div class="form-row"><label>Halbachse A</label><input type="number" step="any" name="A_<?= $this->id ?>" value="<?= $this->A ?>"></div>
+            <div class="form-row"><label>Halbachse B</label><input type="number" step="any" name="B_<?= $this->id ?>" value="<?= $this->B ?>"></div>
+            <div class="form-row"><label>Umdrehungen</label><input type="number" step="any" name="Umdrehungen_<?= $this->id ?>" value="<?= $this->Umdrehungen ?>"></div>
+            <div class="form-row"><label>Punktschrittweite</label><input type="number" step="any" name="Schrittweite_<?= $this->id ?>" value="<?= $this->Schrittweite ?>"></div>
+            <div class="form-row"><label>Reihenfolge</label><input type="number" step="any" name="ReihenfolgePkt_<?= $this->id ?>" value="<?= $this->ReihenfolgePkt ?>"></div>
+        </fieldset>
+
+        <!-- Darstellung -->
+        <fieldset>
+            <legend>Darstellung</legend>
+            <div class="form-row"><label>Linienstärke</label><input type="number" step="any" name="lineWidth_<?= $this->id ?>" value="<?= $this->lineWidth ?>"></div>
+            <div class="form-row">
+                <label>Linienmodus</label>
+                <select name="lineMode_<?= $this->id ?>" id="lineMode_<?= $this->id ?>" onchange="toggleCycleColors(<?= $this->id ?>)">
+                    <option value="fixed" <?= $this->lineMode == 'fixed' ? 'selected' : '' ?>>Feste Farbe</option>
+                    <option value="cycle" <?= $this->lineMode == 'cycle' ? 'selected' : '' ?>>Zyklische Farben</option>
+                </select>
+            </div>
+            <div class="form-row"><label>Farbe (fest)</label><input type="text" name="lineColor_<?= $this->id ?>" value="<?= $this->lineColor ?>"></div>
+        </fieldset>
+
+        <!-- Zyklische Farben -->
+        <fieldset id="cycleColors_<?= $this->id ?>" class="color-fieldset">
+            <legend>Zyklische Farben</legend>
+            <div class="color-grid">
+                <?php 
+                    if (!empty($this->cycleColors) && is_iterable($this->cycleColors)) {
+                        echo "<input type='hidden' name='cycleColors_" . $this->id . "' value='" . htmlspecialchars(json_encode($this->cycleColors, JSON_UNESCAPED_UNICODE), ENT_QUOTES) . "'>";
+                        foreach ($this->cycleColors as $index => $val) {
+                            echo "<div class='color-cell'>";
+                                echo "<label>Farbe " . $index . "</label>";
+                                echo "<input type='text' name='cycleColor_". $index ."_". $this->id  ."' value='". $val ."'>";
+                            echo "</div>";
+                        }
+                    } else {
+                        echo "<label>Zyklische Farben</label><em>Keine Farben definiert.</em>";
+                    }
+                ?>
+            </div>
+        </fieldset>
+
+        <!-- Optionen -->
+        <fieldset>
+            <legend>Optionen</legend>
+            <div class="form-row">
+                <label for="showEllipse_<?= $this->id ?>">Ellipse anzeigen</label>
+                <select name="showEllipse_<?= $this->id ?>" id="showEllipse_<?= $this->id ?>">
+                    <option value="0" <?= empty($this->showEllipse) ? 'selected' : '' ?>>Nein</option>
+                    <option value="1" <?= !empty($this->showEllipse) ? 'selected' : '' ?>>Ja</option>
+                </select>
+            </div>
+            <div class="form-row">
+                <label for="showCircle_<?= $this->id ?>">Punkte anzeigen</label>
+                <select name="showCircle_<?= $this->id ?>" id="showCircle_<?= $this->id ?>">
+                    <option value="0" <?= empty($this->showCircle) ? 'selected' : '' ?>>Nein</option>
+                    <option value="1" <?= !empty($this->showCircle) ? 'selected' : '' ?>>Ja</option>
+                </select>
+            </div>
+        </fieldset>
+
+        <div class="form-actions">
+            <button type="submit" name="submitted_<?= $this->id ?>" value="1">Neu zeichnen</button>
+            <button type="button" onclick="printSVG(<?= $this->id ?>)">SVG drucken</button>
+            <button type="button" onclick="downloadSVG(<?= $this->id ?>)">SVG speichern</button>
+            <button type="button" onclick="toggleHelp(<?= $this->id ?>, true)">Hilfe anzeigen</button>                
+        </div>
+    </div> <!-- /configSection -->
+</form>
+
+<!-- ====================================================== -->
+<!-- 🔹 Hilfe -->
+<!-- ====================================================== -->
+<div id="help-popup-<?= $this->id ?>" class="help-popup" onclick="toggleHelp(<?= $this->id ?>, false)">
+    <div id="help-content-<?= $this->id ?>" class="help-content" onclick="event.stopPropagation()">
+        <div class="dialog-drag-handle">Ziehen zum Verschieben</div>            
+        <h3>Hilfe zu den Parametern</h3>
+        <ul>
+            <li><b>A</b>: Halbachse A</li>
+            <li><b>B</b>: Halbachse B</li>
+            <li><b>Umdrehungen</b>: Anzahl der Umläufe</li>
+            <li><b>Schrittweite</b>: Punktabstand</li>
+            <li><b>Reihenfolge</b>: Punktverbindung</li>
+            <li><b>Linienstärke</b>: Strichdicke</li>
+            <li><b>Linienmodus</b>: fest oder zyklisch</li>
+            <li><b>Farbe</b>: Name oder Hex (#rrggbb)</li>
+        </ul>
+        <button class="close-help" type="button" onclick="toggleHelp(<?= $this->id ?>, false)">Schließen</button>
     </div>
 </div>
 
-<style>
-.ellipse-dialog {
-  position: fixed;
-  top: 30%;
-  left: 7%;
-  border-radius: 20px;
-}
-#help-popup-<?= $this->id ?> {
-  position: fixed;
-  top: 30%;
-  left: 0;
-  display: none;
-  background: transparent;
-  z-index: 9999;
-  pointer-events: none;
-}
-#help-content-<?= $this->id ?> {
-  background: #f5f5c0;
-  border: 1px solid #999;
-  padding: 20px;
-  border-radius: 20px;
-  pointer-events: auto;
-}
-.ellipse-actions {
-  margin-top: 1em;
-  display: flex;
-  gap: 0.5em;
-}
-</style>
+<!-- ====================================================== -->
+<!-- 🔹 Speichern -->
+<!-- ====================================================== -->
+<div class="ellipse-save">
+    <label><input type="checkbox" id="toggleSaveForm_<?= $this->id ?>"><strong> Darstellung speichern</strong></label>
+    <div id="saveFormWrapper_<?= $this->id ?>" class="ellipse-form-section">
+        <form method="post" action="<?= \Contao\Environment::get('uri'); ?>">
+            <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
+            <?= renderEllipseHiddenFields($this) ?>
+            <label>Titel der Darstellung:</label>
+            <input type="text" name="info" value=""><br>
+            <button type="submit">💾 Speichern</button>
+        </form>
+    </div>
+</div>
+<?php if (isset($this->saveMessage)): ?>
+    <p class="<?= $this->saveSuccess ? 'save-ok' : 'save-warning' ?>"><?= $this->saveMessage ?></p>
+<?php endif; ?>
 
+<!-- ====================================================== -->
+<!-- 🔹 Laden -->
+<!-- ====================================================== -->
+<div class="ellipse-load">
+    <label><input type="checkbox" id="toggleLoadForm_<?= $this->id ?>"><strong> Darstellung laden/löschen</strong></label>
+    <div id="loadFormWrapper_<?= $this->id ?>" class="ellipse-form-section">
+        <form method="post" action="<?= \Contao\Environment::get('uri'); ?>">
+            <input type="hidden" name="REQUEST_TOKEN" value="<?= $this->csrfToken ?>">
+            <input type="hidden" name="FORM_SUBMIT" value="ellipse_load_<?= $this->id ?>">
+            <input type="hidden" name="ceId" value="<?= $this->id ?>">
+            <select name="variantId" style="width:70%;">
+                <option value="">-- Darstellung wählen --</option>
+                <?php foreach (($this->savedVariants ?? []) as $v): ?>
+                    <option value="<?= $v['id'] ?>"><?= $v['title'] ?></option>
+                <?php endforeach; ?>
+            </select>
+            <button type="submit" name="loadAction" value="load">🔵 Laden</button>
+            <button type="submit" name="loadAction" value="delete" onclick="return confirm('Wirklich löschen?');">❌ Löschen</button>
+        </form>
+    </div>
+</div>
+<?php if (isset($this->loadMessage)): ?>
+    <p class="<?= $this->loadSuccess ? 'save-ok' : 'save-warning' ?>"><?= $this->loadMessage ?></p>
+<?php endif; ?>
+
+<!-- ====================================================== -->
+<!-- 🔹 SVG-Ausgabe -->
+<!-- ====================================================== -->
+<div id="svg-container-<?= $this->id ?>">
+    <svg id="ellipse-svg-<?= $this->id ?>" xmlns="http://www.w3.org/2000/svg" viewBox="<?= $this->viewBox ?>" preserveAspectRatio="xMidYMid meet">
+        <?php 
+            $lineWidth = $this->lineWidth;
+            $n = count($this->points);
+            if ($this->showEllipse) {
+                echo "<ellipse cx='0' cy='0' rx='{$this->A}' ry='{$this->B}' stroke='red' stroke-width='$lineWidth' fill='none' />";
+            }
+            foreach ($this->points as $i => $p) {
+                $j = ($i + $this->ReihenfolgePkt) % $n;
+                $x1 = $p['x']; $y1 = -$p['y'];
+                $x2 = $this->points[$j]['x']; $y2 = -$this->points[$j]['y'];
+                $color = ($this->lineMode === 'cycle') ? $this->cycleColors[$i % count($this->cycleColors)] : $this->lineColor;
+                echo "<line x1='$x1' y1='$y1' x2='$x2' y2='$y2' stroke='$color' stroke-width='$lineWidth' />";
+            }
+            if ($this->showCircle) {
+                foreach ($this->points as $p) {
+                    $x = $p['x']; $y = -$p['y'];
+                    echo "<circle cx='$x' cy='$y' r='0.1' stroke='black' stroke-width='$lineWidth' fill='none'/>";
+                }
+            }
+        ?>
+    </svg>
+</div>
+</div> <!-- /ce_ellipse -->
+
+<!-- ====================================================== -->
+<!-- 🔹 Scripts -->
+<!-- ====================================================== -->
 <script>
-function submitEllipseForm(id) {
-  const dlg = document.getElementById("ellipseDialog_" + id);
-  const form = document.getElementById("ellipseForm_" + id);
-  if (!form) return;
-  if (!dlg.open) dlg.show();
-  form.submit();
-  dlg.close();
+function toggleHelp(id, show){
+  document.getElementById("help-popup-"+id).style.display = show ? "flex" : "none";
 }
-function printSVG(id) {
-  const svg = document.getElementById("ellipse-svg-" + id).outerHTML;
-  const win = window.open('', '', 'width=900,height=700');
-  win.document.write('<html><head><title>Drucken</title></head><body onload="window.print();window.close()">' + svg + '</body></html>');
-  win.document.close();
-}
-function downloadSVG(id) {
-  const svg = document.getElementById("ellipse-svg-" + id).outerHTML;
-  const blob = new Blob([svg], {type:"image/svg+xml;charset=utf-8"});
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = "ellipse-" + id + ".svg";
-  link.click();
-  URL.revokeObjectURL(url);
-}
-function toggleHelp(id, show) {
-  document.getElementById("help-popup-" + id).style.display = show ? "flex" : "none";
-}
+
 function toggleCycleColors(id) {
-  const mode = document.getElementById("lineMode_" + id).value;
-  const fieldset = document.getElementById("cycleColors_" + id);
-  fieldset.style.display = (mode === "cycle") ? "block" : "none";
+  const mode = document.getElementById("lineMode_" + id);
+  const colors = document.getElementById("cycleColors_" + id);
+  if (!mode || !colors) return;
+  const val = mode.type === "checkbox" ? (mode.checked ? "cycle" : "fixed") : mode.value;
+  colors.style.display = (val === "cycle") ? "block" : "none";
 }
-document.addEventListener("DOMContentLoaded", () => {
-  toggleCycleColors(<?= $this->id ?>);
+
+function toggleConfigSection(id){
+  const cb = document.getElementById("templateSelectionActive_" + id);
+  const section = document.getElementById("configSection_" + id);
+  if(!cb || !section) return;
+  section.style.display = cb.checked ? "block" : "none";
+}
+
+document.addEventListener("DOMContentLoaded",()=>toggleCycleColors(<?= $this->id ?>));
+document.addEventListener("DOMContentLoaded",()=>{
+  const saveToggle=document.getElementById("toggleSaveForm_<?= $this->id ?>");
+  const saveForm=document.getElementById("saveFormWrapper_<?= $this->id ?>");
+  const loadToggle=document.getElementById("toggleLoadForm_<?= $this->id ?>");
+  const loadForm=document.getElementById("loadFormWrapper_<?= $this->id ?>");
+  if(saveToggle&&saveForm)saveToggle.addEventListener("change",()=>saveForm.classList.toggle("active",saveToggle.checked));
+  if(loadToggle&&loadForm)loadToggle.addEventListener("change",()=>loadForm.classList.toggle("active",loadToggle.checked));
 });
-// --- Dialogsteuerung ---
-document.addEventListener("DOMContentLoaded", () => {
-    const dlg = document.getElementById("ellipseDialog_<?= $this->id ?>");
-    const active = <?= $this->templateSelectionActive ? 'true' : 'false' ?>;
-    if (active && dlg && !dlg.open) {
-        setTimeout(() => dlg.show(), 100);
-    }
-});
-
-function keepDialogOpen(id) {
-    // Flag in hidden field setzen, damit PHP weiß: Dialog aktiv
-    const field = document.querySelector(`#ellipseDialog_${id} input[name='templateSelectionActive_${id}']`);
-    if (field) field.value = "1";
-}
-
-function closeEllipseDialog(id) {
-    const dlg = document.getElementById("ellipseDialog_" + id);
-    if (!dlg) return;
-    dlg.close();
-
-    // Flag auf 0 setzen und neu laden, damit PHP den Dialog wieder zu lässt
-    const url = new URL(window.location.href);
-    url.searchParams.set("templateSelectionActive_" + id, "0");
-    window.location.href = url.toString();
-}
-// --- Dialog per Maus verschieben ---
-function makeDialogDraggable(dialogId, handleSelector = '.dialog-drag-handle') {
-    const dlg = document.getElementById(dialogId);
-    const handle = dlg.querySelector(handleSelector);
-    if (!dlg || !handle) return;
-
-    let offsetX = 0, offsetY = 0, dragging = false;
-
-    handle.style.cursor = 'move';
-
-    handle.addEventListener('mousedown', e => {
-        dragging = true;
-        offsetX = e.clientX - dlg.offsetLeft;
-        offsetY = e.clientY - dlg.offsetTop;
-        dlg.style.position = 'fixed';
-        dlg.style.margin = 0;
-        e.preventDefault();
-    });
-
-    document.addEventListener('mousemove', e => {
-        if (!dragging) return;
-        dlg.style.left = (e.clientX - offsetX) + 'px';
-        dlg.style.top  = (e.clientY - offsetY) + 'px';
-    });
-
-    document.addEventListener('mouseup', () => dragging = false);
-}
-
-// Beim Laden aktivieren
-document.addEventListener("DOMContentLoaded", () => {
-    makeDialogDraggable("ellipseDialog_<?= $this->id ?>");
-});
-
 </script>

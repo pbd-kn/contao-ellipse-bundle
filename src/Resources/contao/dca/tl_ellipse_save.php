@@ -12,6 +12,9 @@ $GLOBALS['TL_DCA']['tl_ellipse_save'] = [
     ],
 
     'fields' => [
+        'pid' => [
+            'sql' => "int(10) unsigned NOT NULL default 0"
+        ],
         'id' => [
             'sql' => "int(10) unsigned NOT NULL auto_increment"
         ],
