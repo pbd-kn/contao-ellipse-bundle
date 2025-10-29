@@ -15,21 +15,20 @@ use Symfony\Component\DependencyInjection\ParameterBag\ParameterBagInterface;
  */
 class LoggerService
 {
-    private string $dateiname;
-    private LoggerInterface  $contaoLogger;
-    private string $projectDir;
-    private bool $debug = false;
     // Variablen für späte Initialisierung
     private ?StreamHandler $streamHandler = null;
     
-    public function __construct(LoggerInterface $contaoLogger, ParameterBagInterface $params, string $dateiname = 'ellipsedebug.log')
-    {
-        $this->dateiname = $dateiname;
-        $this->contaoLogger = $contaoLogger;
-        $this->debug = $params->get('kernel.debug');
-        $this->projectDir = $params->get('kernel.project_dir');
+ public function __construct(
+        private LoggerInterface $contaoLogger,
+        private ParameterBagInterface $params,
+        private string $dateiname = 'ellipsedebug.log',
+        private bool $debug = false,
+        private string $projectDir = ''
+    ) {
+        $this->debug = $this->params->get('kernel.debug');
+        $this->projectDir = $this->params->get('kernel.project_dir');
     }
-
+    
     public function debugMe(string $txt): void
     {
         if ($this->debug) {
