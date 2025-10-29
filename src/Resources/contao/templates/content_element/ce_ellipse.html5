@@ -29,7 +29,8 @@ function renderEllipseHiddenFields($context)
         <input type="hidden" name="lineColor_' . $id . '" value="' . htmlspecialchars($context->lineColor, ENT_QUOTES) . '">
         <input type="hidden" name="lineMode_' . $id . '" value="' . htmlspecialchars($context->lineMode, ENT_QUOTES) . '">
         <input type="hidden" name="cycleColors_' . $id . '" value=\'' . htmlspecialchars($colorsJson, ENT_QUOTES) . '\'>
-        <input type="hidden" name="templateSelectionActive_' . $id . '" value=\'' . htmlspecialchars($context->templateSelectionActive, ENT_QUOTES) . '\'>
+        <input type="hidden" name="showEllipse_' . $id . '" value=\'' . htmlspecialchars($context->showEllipse, ENT_QUOTES) . '\'>
+        <input type="hidden" name="showCircle_' . $id . '" value=\'' . htmlspecialchars($context->showCircle, ENT_QUOTES) . '\'>        
     ';
 }
 ?>
@@ -41,17 +42,21 @@ function renderEllipseHiddenFields($context)
     <input type="hidden" name="REQUEST_TOKEN" value="<?= $this->csrfToken ?>">
     <input type="hidden" name="FORM_SUBMIT" value="ellipse_form_<?= $this->id ?>">
     <input type="hidden" name="ceId" value="<?= $this->id ?>">
+    <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="0">
 
-    <div>
-        <input type="hidden" name="templateSelectionActive_<?= $this->id ?>" value="0">
-        <input type="checkbox"
-               id="templateSelectionActive_<?= $this->id ?>"
-               name="templateSelectionActive_<?= $this->id ?>"
-               value="1"
-               <?= $this->templateSelectionActive ? 'checked' : '' ?>
-               onchange="toggleConfigSection(<?= $this->id ?>)">
-        <label for="templateSelectionActive_<?= $this->id ?>"><strong>Darstellung konfigurieren</strong></label>
-    </div>
+<div>
+  <input type="checkbox"
+         id="templateSelectionActive_<?= $this->id ?>"
+         name="templateSelectionActive_<?= $this->id ?>"
+         value="1"
+         <?= $this->templateSelectionActive ? 'checked' : '' ?>
+         onchange="toggleConfigSection('<?= $this->id ?>')">
+
+  <label>
+    <strong>Darstellung konfigurieren</strong>
+  </label>
+</div>
+
 
     <!-- Parameter-Bereich ein-/ausklappbar -->
     <div id="configSection_<?= $this->id ?>" class="ellipse-config-section" style="<?= $this->templateSelectionActive ? '' : 'display:none;' ?>">
@@ -122,12 +127,14 @@ function renderEllipseHiddenFields($context)
         </fieldset>
 
         <div class="form-actions">
-            <button type="submit" name="submitted_<?= $this->id ?>" value="1">Neu zeichnen</button>
             <button type="button" onclick="printSVG(<?= $this->id ?>)">SVG drucken</button>
             <button type="button" onclick="downloadSVG(<?= $this->id ?>)">SVG speichern</button>
             <button type="button" onclick="toggleHelp(<?= $this->id ?>, true)">Hilfe anzeigen</button>                
         </div>
     </div> <!-- /configSection -->
+    <div class="form-actions">
+        <button type="submit" name="submitted_<?= $this->id ?>" value="1">Neu zeichnen</button>
+    </div>
 </form>
 
 <!-- ====================================================== -->
@@ -240,20 +247,83 @@ function toggleCycleColors(id) {
   colors.style.display = (val === "cycle") ? "block" : "none";
 }
 
-function toggleConfigSection(id){
+function toggleConfigSection(id) {
+//debugger;
+  console.log('toggle');
   const cb = document.getElementById("templateSelectionActive_" + id);
+  console.log('toggle cb ' + cb);
   const section = document.getElementById("configSection_" + id);
-  if(!cb || !section) return;
+  console.log('toggle section ' + section);
+  if (!cb || !section) return;
+
+  // Sichtbarkeit umschalten
   section.style.display = cb.checked ? "block" : "none";
+
+  // 🔹 Jetzt das verbundene hidden-Feld holen:
+//debugger;
+console.log('input[type="hidden"][name="templateSelectionActive_' + id + '"]');
+  const hidden = document.querySelector('input[type="hidden"][name="templateSelectionActive_' + id + '"]');
+
+  // 🔹 Wert synchronisieren (damit beim POST der aktuelle Zustand mitkommt)
+  if (hidden) {
+    hidden.value = cb.checked ? '1' : '0';
+    console.log('val: ' + hidden.value);
+  }
+}
+
+// ======================================================
+// 🔸 Drag-Funktion für das Hilfe-Fenster
+// ======================================================
+function enableDrag(elementId, handleClass) {
+  const el = document.getElementById(elementId);
+  const handle = el.querySelector('.' + handleClass);
+  if (!el || !handle) return;
+
+  let offsetX = 0, offsetY = 0, startX = 0, startY = 0, dragging = false;
+
+  handle.style.cursor = "move";
+
+  handle.addEventListener('mousedown', (e) => {
+    dragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    const rect = el.getBoundingClientRect();
+    offsetX = startX - rect.left;
+    offsetY = startY - rect.top;
+    el.style.position = 'absolute';
+    el.style.zIndex = 10000;
+    document.body.style.userSelect = "none";
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    e.preventDefault();
+    const x = e.clientX - offsetX;
+    const y = e.clientY - offsetY;
+    el.style.left = `${x}px`;
+    el.style.top = `${y}px`;
+  });
+
+  document.addEventListener('mouseup', () => {
+    dragging = false;
+    document.body.style.userSelect = "";
+  });
 }
 
 document.addEventListener("DOMContentLoaded",()=>toggleCycleColors(<?= $this->id ?>));
 document.addEventListener("DOMContentLoaded",()=>{
+ const id = <?= $this->id ?>; // ✅ Variable definieren
+
   const saveToggle=document.getElementById("toggleSaveForm_<?= $this->id ?>");
   const saveForm=document.getElementById("saveFormWrapper_<?= $this->id ?>");
   const loadToggle=document.getElementById("toggleLoadForm_<?= $this->id ?>");
   const loadForm=document.getElementById("loadFormWrapper_<?= $this->id ?>");
   if(saveToggle&&saveForm)saveToggle.addEventListener("change",()=>saveForm.classList.toggle("active",saveToggle.checked));
   if(loadToggle&&loadForm)loadToggle.addEventListener("change",()=>loadForm.classList.toggle("active",loadToggle.checked));
+    // 👉 Drag aktivieren
+  enableDrag("help-content-" + id, "dialog-drag-handle");  
 });
+
+
+
 </script>

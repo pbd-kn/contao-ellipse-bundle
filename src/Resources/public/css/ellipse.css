@@ -17,7 +17,6 @@
   grid-template-columns: 1fr;       /* nur eine Spalte */
   gap: 1rem;                        /* Abstand zwischen Checkbox + Inhalt */
   align-items: start;
-  font-family: var(--pb-font-family-monospace, "Segoe UI", sans-serif);
 }
 
 /* Fieldsets im Parameterbereich in Grid-Form */
@@ -65,15 +64,16 @@
   font-size: 0.9rem;
   border: 1px solid #ccc;
   border-radius: 4px;
-  background-color: #fff;
+  background-color: var(--pb-input-bg);
 }
 .ellipse-form .form-row input:hover,
 .ellipse-form .form-row select:hover {
   background-color: var(--pb-body-bg)
 }
 /* =======================================================
-   ?? Farb-Feld Matrix
-   ======================================================= */
+   Anzeige der zyklischen Felder
+   ======================================================= 
+*/
 .color-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
@@ -86,7 +86,6 @@
   align-items: center;
   gap: 0.5rem;
   max-width: 200px;
-  background: #fafafa;
   border: 1px solid #eee;
   padding: 0.3rem 0.5rem;
   border-radius: 4px;
@@ -120,7 +119,7 @@
   padding: 0.4rem 0.8rem;
   border: 1px solid #ccc;
   border-radius: 4px;
-  background: #f7f7f7;
+  background: var(--pb-link-color-navigation-bg);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -128,36 +127,50 @@
 .ellipse-form button:hover,
 .ellipse-form input[type="submit"]:hover,
 .ellipse-form input[type="button"]:hover {
-  background: #e9e9e9;
+  background: var(--pb-link-hover-color-navigation-bg);
 }
 
-/* =======================================================
-   ?? Hilfe-Popup & Dialoge
-   ======================================================= */
-.dialog-drag-handle {
-  cursor: move;
-  background: green;
-  padding: 5px;
-  border-radius: 6px;
-}
-
+/* ======================================================
+   ?? Hilfe-Popup Layout & Drag
+   ====================================================== */
 .help-popup {
-  position: fixed;
-  top: 30%;
-  left: 0;
   display: none;
-  background: transparent;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4); /* ?? dunkle Abdunkelung */
+  justify-content: flex-start;
+  align-items: center;
   z-index: 9999;
-  pointer-events: none;
 }
 
 .help-content {
-  background: yellow;
-  border: 1px solid #999;
-  padding: 20px;
-  border-radius: 20px;
-  pointer-events: auto;
+  background: var(--pb-container-bg);
+  color: black;
+  padding: 1rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 0 10px rgba(0,0,0,0.3);
+  min-width: 250px;
+
+  /* ?? hier die entscheidenden Änderungen */
+  position: relative; /* bleibt im Flex-Container */
+  margin-left: 2rem;  /* Abstand vom linken Rand */
+  top: 0;             /* vertikal zentriert durch align-items */
+  transform: none;    /* keine Zentrierung mehr */
+  left: auto;         /* alte Zentrierung komplett neutralisieren */
 }
+
+
+.dialog-drag-handle {
+  var(--pb-link-color-navigation-bg);
+
+  padding: 0.25rem 0.5rem;
+  font-weight: bold;
+  cursor: move;
+  user-select: none;
+  border-radius: 0.3rem;
+  border: 1px solid var(--pb-body-bg);
+}
+
 
 #helpPopup.active {
   display: flex;
@@ -172,7 +185,7 @@
 .close-help {
   display: block;
   margin-left: auto;
-  background: green;
+  background: var(--pb-link-color-navigation-bg);
   border: 1px solid #ccc;
   padding: 0.3rem 0.6rem;
   border-radius: 4px;
@@ -180,7 +193,7 @@
 }
 
 .close-help:hover {
-  background: #e0e0e0;
+  background: var(--pb-link-hover-color-navigation-bg);
 }
 
 /* =======================================================
@@ -202,7 +215,7 @@
    ?? Erfolg- und Warnmeldungen
    ======================================================= */
 .save-ok {
-  background: #d8ffd8;
+  background: #e9e9e9;
   border: 1px solid #0a0;
   padding: 4px;
 }

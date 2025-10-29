@@ -45,7 +45,7 @@ class EllipseController extends AbstractContentElementController
             // Zugriff auf alle möglichen Quellen
             $get  = $request->query;   // GET-Parameter
             $post = $request->request; // POST-Parameter
-
+$this->logger->debugMe("key $keyWithId");
             // Wenn POST aktiv und Feld gesetzt → nimm POST-Wert
             if ($request->isMethod('POST')) {
                 $fromPost = $post->get($keyWithId);
@@ -139,7 +139,7 @@ $this->logger->debugMe("key $keyWithId from default $fromGet");
             // 🔸 „Speichern“
             //--------------------------------------------------
             if ($formSubmit === 'ellipse_save_' . $ceId) {
-                $blacklist = ['REQUEST_TOKEN', 'FORM_SUBMIT','ceId'];
+                $blacklist = ['REQUEST_TOKEN', 'FORM_SUBMIT','ceId','templateSelectionActive','templateSelectionActiveCB'];
                 $info = trim($post->get('info'));
                 $postData=$post->all();
                 foreach ($blacklist as $field) {
@@ -219,7 +219,7 @@ $this->logger->debugMe("key $keyWithId from default $fromGet");
                         } else {
                             $dump = (string) ${$key};
                         }
-                        $this->logger->debugMe("Variable \$$key erzeugt mit Wert:\n$dump");                    
+                        $this->logger->debugMe("Variable \$$key erzeugt mit Wert: $dump");                    
                     }
                     // Lade-Metadaten setzen
                     $loadSuccess = true;
@@ -252,61 +252,62 @@ $this->logger->debugMe("key $keyWithId from default $fromGet");
             $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save');
             $template->savedVariants = $listResult['items'] ?? [];
 
+        }
         
             //----------------------------------------------------------
             // 🔹 7. Punkte erzeugen (Fallback)
             //----------------------------------------------------------
-            if (empty($points)) {
-                    $points = $this->createEllipsePoints($A, $B, $Umdrehungen, $Schrittweite );
-            }
+        if (empty($points)) { $points = $this->createEllipsePoints($A, $B, $Umdrehungen, $Schrittweite ); }
 
-            //----------------------------------------------------------
-            // 🔹 8. ViewBox
-            //----------------------------------------------------------
-            $viewBox = sprintf('-%d -%d %d %d', $A + 10, $B + 10, ($A + 10) * 2, ($B + 10) * 2 );
-            // ----------------------------------------------------------
-            // 🔹 Template-Variablen ermitteln (ohne LoggerService umbauen)
-            // ----------------------------------------------------------
-// 🔹 fügt CSS im <head> hinzu
+        //----------------------------------------------------------
+        // 🔹 8. ViewBox
+        //----------------------------------------------------------
+        $viewBox = sprintf('-%d -%d %d %d', $A + 10, $B + 10, ($A + 10) * 2, ($B + 10) * 2 );
+        // ----------------------------------------------------------
+        // 🔹 Template-Variablen ermitteln (ohne LoggerService umbauen)
+        // ----------------------------------------------------------
+        // 🔹 fügt CSS im <head> hinzu
         $GLOBALS['TL_HEAD'][] = '<link rel="stylesheet" href="/bundles/pbdkncontaoellipse/css/ellipse.css">';
-                    $template->A = $A ?? null;
-            $template->B = $B ?? null;
-            $template->Umdrehungen = $Umdrehungen ?? null;
-            $template->Schrittweite = $Schrittweite ?? null;
-            $template->ReihenfolgePkt = $ReihenfolgePkt ?? null;
-            $template->lineWidth   = $lineWidth ?? null;
-            $template->lineColor   = $lineColor ?? null;
-            $template->lineMode    = $lineMode ?? null;
-            $template->templateSelectionActive = $templateSelectionActive ?? null;
-            $template->showEllipse = $showEllipse ?? null;
-            $template->showCircle  = $showCircle ?? null;
-            $template->cycleColors = $cycleColors ?? null;
-            $template->viewBox     = $viewBox ?? null;
-            $template->errorMsg    = $errorMsg ?? null;
-            $template->saveSuccess   = $saveSuccess ?? null;
-            $template->saveMessage   = $saveMessage ?? null;
-            $template->loadSuccess   = $loadSuccess ?? null;
-            $template->loadMessage   = $loadMessage ?? null;
-            $template->points = $points ?? null;
-            $this->logger->debugDumpMe([
-                'A' => $template->A,
-                'B' => $template->B,
-                'Umdrehungen' => $template->Umdrehungen ?? null,
-                'Schrittweite' => $template->Schrittweite ?? null,
-                'ReihenfolgePkt' => $template->ReihenfolgePkt ?? null,
-                'lineWidth' => $template->lineWidth ?? null,
-                'lineColor' => $template->lineColor ?? null,
-                'lineMode' => $template->lineMode ?? null,
-                'showEllipse' => $template->showEllipse ?? null,
-                'showCircle' => $template->showCircle ?? null,
-                'cycleColors' => $template->cycleColors ?? null,
-                'saveSuccess' => $template->saveSuccess ?? null,
-                'saveMessage' => $template->saveMessage ?? null,
-                'loadSuccess' => $template->loadSuccess ?? null,
-                'loadMessage' => $template->loadMessage ?? null,
-                'errorMsg' => $template->errorMsg ?? null,
-            ],'GETRESPONSE TEMPLATE');
-        }
+            
+        $template->A = $A ?? null;
+        $template->B = $B ?? null;
+        $template->Umdrehungen = $Umdrehungen ?? null;
+        $template->Schrittweite = $Schrittweite ?? null;
+        $template->ReihenfolgePkt = $ReihenfolgePkt ?? null;
+        $template->lineWidth   = $lineWidth ?? null;
+        $template->lineColor   = $lineColor ?? null;
+        $template->lineMode    = $lineMode ?? null;
+        $template->templateSelectionActive = $templateSelectionActive ?? null;
+        $template->showEllipse = $showEllipse ?? null;
+        $template->showCircle  = $showCircle ?? null;
+        $template->cycleColors = $cycleColors ?? null;
+        $template->viewBox     = $viewBox ?? null;
+        $template->errorMsg    = $errorMsg ?? null;
+        $template->saveSuccess   = $saveSuccess ?? null;
+        $template->saveMessage   = $saveMessage ?? null;
+        $template->loadSuccess   = $loadSuccess ?? null;
+        $template->loadMessage   = $loadMessage ?? null;
+        $template->points = $points ?? null;
+        
+        $this->logger->debugDumpMe([
+            'A' => $template->A,
+            'B' => $template->B,
+            'Umdrehungen' => $template->Umdrehungen ?? null,
+            'Schrittweite' => $template->Schrittweite ?? null,
+            'ReihenfolgePkt' => $template->ReihenfolgePkt ?? null,
+            'lineWidth' => $template->lineWidth ?? null,
+            'lineColor' => $template->lineColor ?? null,
+            'lineMode' => $template->lineMode ?? null,
+            'showEllipse' => $template->showEllipse ?? null,
+            'showCircle' => $template->showCircle ?? null,
+            'cycleColors' => $template->cycleColors ?? null,
+            'saveSuccess' => $template->saveSuccess ?? null,
+            'saveMessage' => $template->saveMessage ?? null,
+            'loadSuccess' => $template->loadSuccess ?? null,
+            'loadMessage' => $template->loadMessage ?? null,
+            'templateSelectionActive' => $template->templateSelectionActive ?? null,
+            'errorMsg' => $template->errorMsg ?? null,
+        ],'GETRESPONSE TEMPLATE');
 
         //----------------------------------------------------------
         // ✅ Ausgabe

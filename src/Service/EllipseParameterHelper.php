@@ -97,32 +97,26 @@ class EllipseParameterHelper
     // ============================================================
     public function findDuplicate(string $table, array $params): ?int
     {
-        $this->logger->debugMe('findDuplicate()');
+        $this->logger->debugMe('findDuplicate() – only title check');
 
         try {
-            $where  = [];
-            $values = [];
-            foreach ($params as $key => $value) {
-                if (str_starts_with($key, '_')) { continue; }
-                if (is_array($value) || is_object($value)) { $value = json_encode($value, JSON_UNESCAPED_UNICODE);}
-                // Doctrine erkennt Platzhalter korrekt, wenn du ? benutzt
-                $where[]  = "$key = ?";
-                $values[] = $value;
+            $title = $params['title'] ?? null;
+            if ($title === null || $title === '') {
+                $this->logger->Error('findDuplicate ERROR: kein Titel', [
+                    'table' => $table,
+                    'params' => $params
+                ]);
+                return null; // kein Titel → keine Prüfung möglich
             }
-            if (empty($where)) { return null; }
-            $sql = sprintf(
-                'SELECT id FROM %s WHERE %s LIMIT 1',
-                $table,
-                implode(' AND ', $where)
-            );
-            $this->logger->debugMe('findDuplicate SQL: ' . $sql);
-            // DBAL-kompatibler Aufruf
-            $result = $this->connection->fetchAssociative($sql, $values);
+            $sql = sprintf('SELECT id FROM %s WHERE title = ? LIMIT 1', $table);
+            $this->logger->debugMe('findDuplicate SQL: ' . $sql . ' [' . $title . ']');
+            $result = $this->connection->fetchAssociative($sql, [$title]);
             if ($result) {
-                $this->logger->debugMe('Duplicate found with ID ' . $result['id'] . ' Info ' . $params['title']);
+                $this->logger->debugMe('Duplicate found with ID ' . $result['id'] . ' for title "' . $title . '"');
                 return (int) $result['id'];
             }
-            $this->logger->debugMe('No duplicate found.');
+
+            $this->logger->debugMe('No duplicate found for title "' . $title . '".');
             return null;
         } catch (\Throwable $e) {
             $this->logger->Error('findDuplicate Exception: ' . $e->getMessage(), [
@@ -156,7 +150,7 @@ class EllipseParameterHelper
             // 🔍 Duplikate prüfen
             $duplicateId = $this->findDuplicate($table, $params);
             if ($duplicateId !== null) {
-                return [ 'status' => 'duplicate', 'id' => $duplicateId, 'message' => "Keine Änderungen – Darstellung (". $params['title'] .") ist schon gespeichert.",];
+                return [ 'status' => 'duplicate', 'id' => $duplicateId, 'message' => "Keine Änderungen – Darstellung ('". $params['title'] ."') ist schon gespeichert/unzulässig.",];
             }
             // 🕓 Zusatzfelder hinzufügen
             $params['createdAt'] = time();
