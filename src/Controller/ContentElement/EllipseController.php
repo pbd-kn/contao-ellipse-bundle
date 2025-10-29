@@ -155,13 +155,13 @@ $this->logger->debugMe("key $keyWithId from default $fromGet");
                 $postData = $cleanData;
                 $this->logger->debugDumpMe($postData,'Speichern POSTDATA');
                 $params = json_encode($postData, JSON_UNESCAPED_UNICODE);
-                $saveData = ['pid' => $ceId, 'title' => $info ?: 'Ohne Titel', 'parameters' => $params];
+                $saveData = ['pid' => $ceId, 'title' => $info ?: 'Ohne Titel', 'typ' =>self::TYPE, 'parameters' => $params];
                 $this->logger->debugDumpMe($saveData,'Speichern saveData');
-                $result = $this->paramHelper->saveParameterSet('tl_ellipse_save', $saveData, $ceId);
-                $saveSuccess = in_array($result['status'], ['inserted', 'updated']);
+                $result = $this->paramHelper->saveParameterSet('tl_ellipse_save',  $saveData);
+                $saveSuccess = in_array($result['status'], ['ok']);
                 $saveMessage = $result['message'] ?? 'Speicherfehler.';
                 // ✅ Nur bei „inserted“ erweitern:
-                if ($result['status'] === 'inserted') {
+                if ($result['status'] === 'ok') {
                     $saveMessage = "$info wurde gespeichert. $saveMessage";   
                 }
                 $A=$postData['A'];
@@ -249,7 +249,7 @@ $this->logger->debugMe("key $keyWithId from default $fromGet");
             //----------------------------------------------------------
             // 🔹 6. Variantenliste laden
             //----------------------------------------------------------
-            $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save');
+            $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save', self::TYPE);
             $template->savedVariants = $listResult['items'] ?? [];
 
         }

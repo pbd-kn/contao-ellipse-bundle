@@ -95,7 +95,7 @@ class EllipseParameterHelper
     // ============================================================
     // 🔹 Duplikate prüfen (Doctrine-DBAL, sauberer Stringvergleich)
     // ============================================================
-    public function findDuplicate(string $table, array $params): ?int
+    public function findDuplicate(string $table, array $params): ?array
     {
         $this->logger->debugMe('findDuplicate() – only title check');
 
@@ -106,24 +106,48 @@ class EllipseParameterHelper
                     'table' => $table,
                     'params' => $params
                 ]);
-                return null; // kein Titel → keine Prüfung möglich
+                $resArr = [
+                    'status' => 'error',
+                    'id' => null,
+                    'message' => 'findDuplicate ERROR: kein Titel',
+                    'exception' => null,
+                ];
+                return $resArr; // kein Titel → keine Prüfung möglich
             }
             $sql = sprintf('SELECT id FROM %s WHERE title = ? LIMIT 1', $table);
             $this->logger->debugMe('findDuplicate SQL: ' . $sql . ' [' . $title . ']');
             $result = $this->connection->fetchAssociative($sql, [$title]);
             if ($result) {
                 $this->logger->debugMe('Duplicate found with ID ' . $result['id'] . ' for title "' . $title . '"');
-                return (int) $result['id'];
+                $resArr = [
+                    'status' => 'error',
+                    'id' => (int) $result['id'],
+                    'message' => 'Duplicate found with ID ' . $result['id'] . ' for title "' . $title . '"',
+                    'exception' => null,
+                ];
+                return $resArr; // kein Titel → keine Prüfung möglich
             }
 
             $this->logger->debugMe('No duplicate found for title "' . $title . '".');
-            return null;
+            $resArr = [
+                'status' => 'ok',
+                'id' => null,
+                'message' => '',
+                'exception' => null,
+                ];
+            return $resArr; // kein Titel → keine Prüfung möglich
         } catch (\Throwable $e) {
             $this->logger->Error('findDuplicate Exception: ' . $e->getMessage(), [
                 'file' => $e->getFile(),
                 'line' => $e->getLine(),
             ]);
-            return null;
+            $resArr = [
+                'status' => 'error',
+                'id' => (int) $result['id'],
+                'message' => 'findDuplicate Exception: ' . $e->getMessage(),
+                'exception' => null,
+            ];
+            return $resArr; // kein Titel → keine Prüfung möglich
         }
     }
 
@@ -134,27 +158,25 @@ class EllipseParameterHelper
     public function saveParameterSet(string $table, array $params): array
     {
         $this->logger->debugMe('saveParameterSet');
-        $result = [
-            'status' => 'error',
-            'id' => null,
-            'message' => '',
-            'exception' => null,
-        ];
+
         try {
             // 🧑‍💻 Benutzername (Frontend)
-            $username = 'gast';
+            $username = 'guest';
             if (defined('FE_USER_LOGGED_IN') && FE_USER_LOGGED_IN) {
                 $user = \Contao\FrontendUser::getInstance();
-                $username = $user->username ?? 'unknown';
+                $username = $user->username ?? 'guest';
+            }
+            if ($username == 'guest') {
+                return [ 'status' => 'noLogin', 'message' => "Sie müssen angemeldet sein um zu speichern. Nehmen Sie mit mir Kontakt auf",];
             }
             // 🔍 Duplikate prüfen
-            $duplicateId = $this->findDuplicate($table, $params);
-            if ($duplicateId !== null) {
-                return [ 'status' => 'duplicate', 'id' => $duplicateId, 'message' => "Keine Änderungen – Darstellung ('". $params['title'] ."') ist schon gespeichert/unzulässig.",];
+            $resArr = $this->findDuplicate($table, $params);
+            if ($resArr['status'] != 'ok') {
+                return [ 'status' => 'duplicate', 'message' => "Keine Änderungen – Darstellung ('". $resArr['message'] ."') ist schon gespeichert/unzulässig.",];
             }
             // 🕓 Zusatzfelder hinzufügen
-            $params['createdAt'] = time();
-            $params['createdBy'] = $username;
+            $params['erstellDatum'] = time();
+            $params['ersteller'] = $username;
             $columns = [];
             $placeholders = [];
             $values = [];
@@ -182,9 +204,9 @@ class EllipseParameterHelper
             // Insert-ID holen
             $insertId = (int) $this->connection->lastInsertId();
             return [
-                'status' => 'inserted',
+                'status' => 'ok',
                 'id' => $insertId,
-                'message' => "Datensatz erfolgreich gespeichert InsertID (#$insertId).",
+                'message' => "Datensatz erfolgreich unter User $username gespeichert  InsertID (#$insertId).",
             ];
         } catch (\Throwable $e) {
             $this->logger->Error('saveParameterSet Exception: ' . $e->getMessage(), [ 'file' => $e->getFile(), 'line' => $e->getLine(), ]);
@@ -210,7 +232,7 @@ class EllipseParameterHelper
         $db = Database::getInstance();
 
         try {
-            $variant = $db->prepare("SELECT id, createdBy, title, parameters FROM $table WHERE id=?")
+            $variant = $db->prepare("SELECT id, ersteller, title, parameters FROM $table WHERE id=?")
                 ->execute($variantId)
                 ->fetchAssoc();
 
@@ -221,7 +243,7 @@ class EllipseParameterHelper
             $params = array_merge(
                 [
                     'id'        => $variant['id'],
-                    'createdBy' => $variant['createdBy'],
+                    'ersteller' => $variant['ersteller'],
                     'title'     => $variant['title'],
                 ],
                 json_decode($variant['parameters'], true) ?: []
@@ -284,14 +306,27 @@ class EllipseParameterHelper
     // ============================================================
     // 🔹 Alle gespeicherten Varianten abrufen
     // ============================================================
-    public function getSavedVariants(string $table): array
+    public function getSavedVariants(string $table, ?string $typ = null, ?string $ersteller = null): array
     {
-        $db = Database::getInstance();
-
         try {
-            $result = $db->query("SELECT id, createdBy, title, parameters FROM $table ORDER BY createdAt DESC")
-                ->fetchAllAssoc();
-
+            // 🔹 WHERE-Bedingungen dynamisch aufbauen
+            $where  = [];
+            $values = [];
+            if (!empty($ersteller)) {
+                $where[]  = 'ersteller = ?';
+                $values[] = $ersteller;
+            }
+            if (!empty($typ)) {
+                $where[]  = 'typ = ?';
+                $values[] = $typ;
+            }
+            // 🔹 SQL zusammenbauen
+            $sql = "SELECT id, ersteller, erstellDatum, typ, title, parameters FROM $table";
+            if ($where) { $sql .= ' WHERE ' . implode(' AND ', $where); }
+            $sql .= ' ORDER BY erstellDatum DESC';
+            // 🔹 Doctrine-Query ausführen
+            $stmt = $this->connection->prepare($sql);
+            $result = $stmt->executeQuery($values)->fetchAllAssociative();
             return [
                 'status'  => 'ok',
                 'message' => sprintf('%d Datensätze gefunden.', count($result)),
@@ -299,9 +334,9 @@ class EllipseParameterHelper
             ];
         } catch (\Throwable $e) {
             return [
-                'status'    => 'db_error',
-                'message'   => 'Fehler beim Laden der Varianten: ' . $e->getMessage(),
-                'items'     => [],
+                'status'  => 'db_error',
+                'message' => 'Fehler beim Laden der Varianten: ' . $e->getMessage(),
+                'items'   => [],
             ];
         }
     }
