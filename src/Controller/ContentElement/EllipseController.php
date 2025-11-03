@@ -33,45 +33,13 @@ class EllipseController extends AbstractContentElementController
         //----------------------------------------------------------
         // 🔹 1. Grunddaten + CSRF-Token
         //----------------------------------------------------------
+        $templateName = $model->ellipse_template ?: 'ce_ellipse_krell';
+        $template = $this->createTemplate($model, $templateName);
         $ceId = (int) $model->id;
         $template->id = $ceId;
         $post = $request->request;
         $template->csrfToken = $this->csrfTokenManager->getDefaultTokenValue();
-        $this->logger->debugMe('CSRF-Token: ' . $template->csrfToken);
-       // Hilfsfunktion: GET > DB > Default
-        $val = function (string $key, string $dbField, $default = null) use ($request, $model, $ceId) {
-            // Einheitlicher Feldname mit CE-ID (z. B. "A_27")
-            $keyWithId = $key . '_' . $ceId;
-            // Zugriff auf alle möglichen Quellen
-            $get  = $request->query;   // GET-Parameter
-            $post = $request->request; // POST-Parameter
-$this->logger->debugMe("key $keyWithId");
-            // Wenn POST aktiv und Feld gesetzt → nimm POST-Wert
-            if ($request->isMethod('POST')) {
-                $fromPost = $post->get($keyWithId);
-                if ($fromPost !== null && $fromPost !== '') {
-$this->logger->debugMe("key $keyWithId from post $fromPost");
-                    return $fromPost;
-                }
-            }
-            // Wenn in GET vorhanden → nimm diesen Wert
-            $fromGet = $get->get($keyWithId);
-            if ($fromGet !== null && $fromGet !== '') {
-$this->logger->debugMe("key $keyWithId from get $fromGet");
-                return $fromGet;
-            }
-
-            // 3️⃣  Wenn Datenbankwert existiert → nimm DB-Wert
-            if (isset($model->{$dbField}) && $model->{$dbField} !== '') {
-$this->logger->debugMe("key $keyWithId from model ".$model->{$dbField});
-                return $model->{$dbField};
-             }
-
-            // 4️⃣  Fallback → Default
-$this->logger->debugMe("key $keyWithId from default $fromGet");
-            return $default;
-        };
-
+        $this->logger->debugMe("$templateName: $templateName CSRF-Token: " . $template->csrfToken);
  
         //----------------------------------------------------------
         // 🔹 2. Backend-Wildcard
@@ -90,7 +58,9 @@ $this->logger->debugMe("key $keyWithId from default $fromGet");
         //----------------------------------------------------------
         // 🔹 5. POST-Handling
         //----------------------------------------------------------
-        $this->logger->debugMe("Request");
+        $this->logger->debugMe("--------------- Request -------------------");
+        // Hilfsfunktion: GET > DB > Default
+        $val = $this->paramHelper->makeValueResolver($request, $model, $ceId);   
             //----------------------------------------------------------
             // 🔹 3. Initiale Template-Werte
             //----------------------------------------------------------

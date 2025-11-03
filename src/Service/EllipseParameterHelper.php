@@ -7,6 +7,9 @@ use Contao\Database;
 use Symfony\Component\HttpFoundation\Request;
 use PbdKn\ContaoEllipseBundle\Service\LoggerService;
 use Doctrine\DBAL\Connection;
+use Symfony\Component\Security\Core\Security;
+use Contao\FrontendUser;
+
 
 /**
  * Liest, speichert und löscht Ellipsenparameter.
@@ -15,11 +18,70 @@ use Doctrine\DBAL\Connection;
  */
 class EllipseParameterHelper
 {
+    private string $username = 'guest';
     public function __construct(
         private readonly LoggerService $logger,
         private readonly Connection $connection,
-    ) {}
+        private readonly Security $security, 
+    ) 
+    {
+            $user = $this->security->getUser(); // ✅ aktueller Security-User
+            if ($user instanceof FrontendUser) {
+                $this->username = $user->username;
+            }            
+    }
+     /**
+     * Gibt eine closureFunktion zurück, die Parameter aus POST, GET, Model oder Default liest.
+     *
+     * @param Request $request
+     * @param object  $model   Contao-Model (z. B. ContentModel)
+     * @param int     $ceId    Content-Element-ID
+     *
+     * @return callable(string $key, string $dbField, mixed $default = null): mixed
+     * $val = $this->paramHelper->makeValueResolver($request, $model, $ceId);
+     * $A  = (float) $val('A', 'ellipse_x', 100);
+     */
+    public function makeValueResolver(Request $request, object $model, int $ceId): callable
+    {
+        $logger = $this->logger; // lokale Referenz, damit sie in der Closure verfügbar ist
 
+        return function (string $key, string $dbField, $default = null) use ($request, $model, $ceId, $logger) {
+            // Einheitlicher Feldname mit CE-ID (z. B. "A_27")
+            $keyWithId = $key . '_' . $ceId;
+
+            // Zugriff auf alle möglichen Quellen
+            $get  = $request->query;   // GET-Parameter
+            $post = $request->request; // POST-Parameter
+
+            $logger->debugMe("key $keyWithId");
+
+            // 1️⃣ POST
+            if ($request->isMethod('POST')) {
+                $fromPost = $post->get($keyWithId);
+                if ($fromPost !== null && $fromPost !== '') {
+                    $logger->debugMe("key $keyWithId from post $fromPost");
+                    return $fromPost;
+                }
+            }
+
+            // 2️⃣ GET
+            $fromGet = $get->get($keyWithId);
+            if ($fromGet !== null && $fromGet !== '') {
+                $logger->debugMe("key $keyWithId from get $fromGet");
+                return $fromGet;
+            }
+
+            // 3️⃣ DB-Feld aus dem Model
+            if (isset($model->{$dbField}) && $model->{$dbField} !== '') {
+                $logger->debugMe("key $keyWithId from model " . $model->{$dbField});
+                return $model->{$dbField};
+            }
+
+            // 4️⃣ Default-Fallback
+            $logger->debugMe("key $keyWithId from default $default");
+            return $default;
+        };
+    }
     // ============================================================
     // 🔹 Parameter-Gesamtset laden (POST → DB → Default)
     // ============================================================
@@ -118,11 +180,12 @@ class EllipseParameterHelper
             $this->logger->debugMe('findDuplicate SQL: ' . $sql . ' [' . $title . ']');
             $result = $this->connection->fetchAssociative($sql, [$title]);
             if ($result) {
-                $this->logger->debugMe('Duplicate found with ID ' . $result['id'] . ' for title "' . $title . '"');
+                $mes='Doppelter Eintrag gefunden ID ' . $result['id'] . ' for title "' . $title . '"';
+                $this->logger->debugMe($mes);
                 $resArr = [
                     'status' => 'error',
                     'id' => (int) $result['id'],
-                    'message' => 'Duplicate found with ID ' . $result['id'] . ' for title "' . $title . '"',
+                    'message' => $mes,
                     'exception' => null,
                 ];
                 return $resArr; // kein Titel → keine Prüfung möglich
@@ -160,13 +223,7 @@ class EllipseParameterHelper
         $this->logger->debugMe('saveParameterSet');
 
         try {
-            // 🧑‍💻 Benutzername (Frontend)
-            $username = 'guest';
-            if (defined('FE_USER_LOGGED_IN') && FE_USER_LOGGED_IN) {
-                $user = \Contao\FrontendUser::getInstance();
-                $username = $user->username ?? 'guest';
-            }
-            if ($username == 'guest') {
+            if ($this->username == 'guest') {
                 return [ 'status' => 'noLogin', 'message' => "Sie müssen angemeldet sein um zu speichern. Nehmen Sie mit mir Kontakt auf",];
             }
             // 🔍 Duplikate prüfen
@@ -176,7 +233,7 @@ class EllipseParameterHelper
             }
             // 🕓 Zusatzfelder hinzufügen
             $params['erstellDatum'] = time();
-            $params['ersteller'] = $username;
+            $params['ersteller'] = $this->username;
             $columns = [];
             $placeholders = [];
             $values = [];
@@ -206,7 +263,7 @@ class EllipseParameterHelper
             return [
                 'status' => 'ok',
                 'id' => $insertId,
-                'message' => "Datensatz erfolgreich unter User $username gespeichert  InsertID (#$insertId).",
+                'message' => "Datensatz erfolgreich unter User " . $this->username. "gespeichert  InsertID (#$insertId).",
             ];
         } catch (\Throwable $e) {
             $this->logger->Error('saveParameterSet Exception: ' . $e->getMessage(), [ 'file' => $e->getFile(), 'line' => $e->getLine(), ]);
@@ -225,57 +282,87 @@ class EllipseParameterHelper
 
 
     // ============================================================
-    // 🔹 Parameter laden
+    // 🔹 Parameter laden (Doctrine-Version)
     // ============================================================
     public function loadParameterSet(string $table, int $variantId): array
     {
-        $db = Database::getInstance();
-
+        $this->logger->debugMe("loadParameterSet($table, $variantId)");
         try {
-            $variant = $db->prepare("SELECT id, ersteller, title, parameters FROM $table WHERE id=?")
-                ->execute($variantId)
-                ->fetchAssoc();
-
+            //--------------------------------------------------
+            // 🔸 1. Datensatz lesen
+            //--------------------------------------------------
+            $sql = sprintf(
+                'SELECT id, ersteller, title, parameters FROM %s WHERE id = ?',
+                $table
+            );
+            $variant = $this->connection->fetchAssociative($sql, [$variantId]);
             if (!$variant) {
-                return ['status' => 'not_found', 'message' => "Darstellung Variante mit Id $variantId nicht gefunden."];
+                return [
+                    'status'  => 'not_found',
+                    'message' => "Darstellung mit ID $variantId wurde nicht gefunden.",
+                ];
             }
-
+            //--------------------------------------------------
+            // 🔸 2. JSON-Feld decodieren
+            //--------------------------------------------------
+            $decodedParams = [];
+            if (!empty($variant['parameters'])) {
+                $decodedParams = json_decode($variant['parameters'], true);
+                if (!is_array($decodedParams)) {
+                    $decodedParams = [];
+                }
+            }
+            //--------------------------------------------------
+            // 🔸 3. Struktur aufbauen
+            //--------------------------------------------------
             $params = array_merge(
                 [
-                    'id'        => $variant['id'],
-                    'ersteller' => $variant['ersteller'],
-                    'title'     => $variant['title'],
+                    'id'        => (int) $variant['id'],
+                    'ersteller' => $variant['ersteller'] ?? '',
+                    'title'     => $variant['title'] ?? '',
                 ],
-                json_decode($variant['parameters'], true) ?: []
+                $decodedParams
             );
-
             return [
                 'status'     => 'loaded',
-                'message'    => "Darstellung $variantId erfolgreich geladen.",
+                'message'    => "Darstellung #$variantId erfolgreich geladen.",
                 'parameters' => $params,
                 'raw'        => $variant,
             ];
         } catch (\Throwable $e) {
+            $this->logger->error('loadParameterSet Exception: ' . $e->getMessage(), [
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
             return [
-                'status' => 'db_error',
+                'status'  => 'db_error',
                 'message' => 'Fehler beim Laden der Parameter: ' . $e->getMessage(),
             ];
         }
     }
+
 
     // ============================================================
     // 🔹 Parameter löschen
     // ============================================================
     public function deleteParameterSet(string $table, array $conditions): array
     {
-        $db = Database::getInstance();
-        $result = ['success' => 'error', 'count' => 0, 'message' => '', 'exception' => null];
+        $this->logger->debugMe('deleteParameterSet');
 
+        $result = ['success' => 'error', 'count' => 0, 'message' => '', 'exception' => null];
+        $username = $this->username;
         try {
             if (empty($table) || empty($conditions)) {
-                throw new \InvalidArgumentException('Tabelle oder Bedingungen sind leer.');
+                return [
+                    'success' => 'not_found',
+                    'message' => 'Tabelle oder Bedingungen sind leer.',
+                    'count'   => 0,
+                ];
             }
 
+            //--------------------------------------------------
+            // 🔹 1. Datensatz holen, um den Ersteller zu prüfen
+            //--------------------------------------------------
             $where = [];
             $values = [];
             foreach ($conditions as $key => $value) {
@@ -283,21 +370,53 @@ class EllipseParameterHelper
                 $values[] = $value;
             }
 
-            $sql = sprintf('DELETE FROM %s WHERE %s', $table, implode(' AND ', $where));
-            $query = $db->prepare($sql)->execute(...$values);
-            $affected = $query->affectedRows;
+            $sqlCheck = sprintf(
+                'SELECT id, ersteller FROM %s WHERE %s LIMIT 1',
+                $table,
+                implode(' AND ', $where)
+            );
+            $record = $this->connection->fetchAssociative($sqlCheck, $values);
+
+            if (!$record) {
+                return [
+                    'success' => 'not_found',
+                    'message' => 'Kein passender Datensatz gefunden.',
+                    'count'   => 0,
+                ];
+            }
+
+            //--------------------------------------------------
+            // 🔹 2. Ersteller prüfen
+            //--------------------------------------------------
+            $this->logger->debugMe('deleteParameterSet');
+            if ($username && isset($record['ersteller']) && $record['ersteller'] !== $username) {
+                return [
+                    'success' => 'forbidden',
+                    'message' => sprintf(
+                        'Datensatz kann nur vom Ersteller "%s" gelöscht werden.',
+                        $record['ersteller']
+                    ),
+                    'count' => 0,
+                ];
+            }
+
+            //--------------------------------------------------
+            // 🔹 3. Löschen ausführen
+            //--------------------------------------------------
+            $sqlDelete = sprintf('DELETE FROM %s WHERE %s', $table, implode(' AND ', $where));
+            $affected = $this->connection->executeStatement($sqlDelete, $values);
 
             return [
                 'success'  => $affected > 0 ? 'deleted' : 'not_found',
-                'count'   => $affected,
-                'message' => $affected > 0
-                    ? "Es wurden $affected Datensatz/Datensätze gelöscht."
+                'count'    => $affected,
+                'message'  => $affected > 0
+                    ? "Datensatz wurde erfolgreich gelöscht."
                     : "Keine passenden Datensätze gefunden.",
             ];
         } catch (\Throwable $e) {
             return [
-                'success' => 'db_error',
-                'message' => 'Fehler beim Löschen: ' . $e->getMessage(),
+                'success'   => 'db_error',
+                'message'   => 'Fehler beim Löschen: ' . $e->getMessage(),
                 'exception' => sprintf('%s in %s:%d', $e->getMessage(), $e->getFile(), $e->getLine()),
             ];
         }
@@ -312,27 +431,31 @@ class EllipseParameterHelper
             // 🔹 WHERE-Bedingungen dynamisch aufbauen
             $where  = [];
             $values = [];
-            if (!empty($ersteller)) {
-                $where[]  = 'ersteller = ?';
-                $values[] = $ersteller;
-            }
             if (!empty($typ)) {
                 $where[]  = 'typ = ?';
                 $values[] = $typ;
+            }
+            if (!empty($ersteller)) {
+                $where[]  = 'ersteller = ?';
+                $values[] = $ersteller;
             }
             // 🔹 SQL zusammenbauen
             $sql = "SELECT id, ersteller, erstellDatum, typ, title, parameters FROM $table";
             if ($where) { $sql .= ' WHERE ' . implode(' AND ', $where); }
             $sql .= ' ORDER BY erstellDatum DESC';
             // 🔹 Doctrine-Query ausführen
+            $this->logger->debugMe("getSavedVariants SQL: $sql");
+
             $stmt = $this->connection->prepare($sql);
             $result = $stmt->executeQuery($values)->fetchAllAssociative();
+            $this->logger->debugMe(sprintf('%d Datensätze gefunden.', count($result)));
             return [
                 'status'  => 'ok',
                 'message' => sprintf('%d Datensätze gefunden.', count($result)),
                 'items'   => $result,
             ];
         } catch (\Throwable $e) {
+            $this->logger->debugMe('Fehler beim Laden der Varianten: ' . $e->getMessage());
             return [
                 'status'  => 'db_error',
                 'message' => 'Fehler beim Laden der Varianten: ' . $e->getMessage(),
