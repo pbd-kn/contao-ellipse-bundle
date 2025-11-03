@@ -60,9 +60,9 @@ Im Frontend werden die Punkte in **SVG** ausgegeben:
 | `ellipse_schrittweite_pkt`    | Schrittweite (S)      | Abstand der Punkte eergibt die Anzahl Punkte die gezeichnez werden |
 | `ellipse_point_sequence (R)`  | Punktreihenfolge      | Gibt an in welcher Reihenfolge die Punkte verbunden werden |
 |                               |                       |
-| bei kreis auf Ellipse         |                       |                       |
+| bei Kreis auf Ellipse         |                       |                       |
 | `ellipse_circle_radius (R)`   | Kreisradius           | Größe der Hilfskreise |
-| `ellipse_point_radius (R1)`   | Punkt-Radius          | Größe der einzelnen Punkte |
+| `ellipse_point_radius (R1)`   | Abstand               | Punktabstand des Punktes vom Kreismittelpunkt |
 
 ### Linien & Farben
 | Feld                          | Beschreibung          | Wirkung 
