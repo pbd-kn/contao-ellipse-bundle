@@ -19,7 +19,7 @@ Das Bundle stellt zwei Content-Elemente bereit:
 ### Ellipse Krell (Kreis über Ellipse)
 - Erweiterung der klassischen Ellipse.  
 - Zusätzlich läuft auf der Ellipse ein Kreis ab.
-- Übewr kreisradius und Abstand dses Kreiamittelpunkts werden die zu verbindenden Punkte bestimmt  
+- Über Kreisradius und Abstand vom Kreismittelpunkts werden die zu verbindenden Punkte bestimmt  
 - 
 - **Typ:** `EllipseKrellController::TYPE`
 
