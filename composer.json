@@ -8,11 +8,13 @@
     "contao-bundle",
     "ellipse",
     "svg",
-    "content-element"
+    "content-element",
+    "grafik",
+    "computergrafik"
   ],
   "require": {
     "php": "^8.1",
-    "contao/core-bundle": "^4.13 || ^5.3"
+    "contao/core-bundle": "^5.3"
   },
   "autoload": {
     "psr-4": {
