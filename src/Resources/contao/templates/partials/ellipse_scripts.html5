@@ -1,0 +1,98 @@
+<script>
+function toggleHelp(id, show){
+    document.getElementById("help-popup-"+id).style.display = show ? "flex" : "none";
+}
+
+function toggleCycleColors(id) {
+    const mode = document.getElementById("lineMode_" + id);
+    const colors = document.getElementById("cycleColors_" + id);
+    if (!mode || !colors) return;
+    const val = mode.type === "checkbox" ? (mode.checked ? "cycle" : "fixed") : mode.value;
+    colors.style.display = (val === "cycle") ? "block" : "none";
+}
+
+function toggleConfigSection(id) {
+    const cb = document.getElementById("templateSelectionActive_" + id);
+    const section = document.getElementById("configSection_" + id);
+    if (!cb || !section) return;
+    section.style.display = cb.checked ? "block" : "none";
+    const hidden = document.querySelector('input[type="hidden"][name="templateSelectionActive_' + id + '"]');
+    if (hidden) hidden.value = cb.checked ? '1' : '0';
+}
+
+function enableDrag(elementId, handleClass) {
+    const el = document.getElementById(elementId);
+    const handle = el ? el.querySelector('.' + handleClass) : null;
+    if (!el || !handle) return;
+    let offsetX = 0, offsetY = 0, startX = 0, startY = 0, dragging = false;
+    handle.style.cursor = "move";
+    handle.addEventListener('mousedown', (e) => {
+        dragging = true;
+        startX = e.clientX; startY = e.clientY;
+        const rect = el.getBoundingClientRect();
+        offsetX = startX - rect.left; offsetY = startY - rect.top;
+        el.style.position = 'absolute'; el.style.zIndex = 10000;
+        document.body.style.userSelect = "none";
+    });
+    document.addEventListener('mousemove', (e) => {
+        if (!dragging) return;
+        e.preventDefault();
+        const x = e.clientX - offsetX;
+        const y = e.clientY - offsetY;
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+    });
+    document.addEventListener('mouseup', () => {
+        dragging = false;
+        document.body.style.userSelect = "";
+    });
+}
+
+function downloadSVG(id) {
+  const svgElement = document.getElementById('ellipse-svg-' + id);
+  if (!svgElement) return alert('SVG-Element nicht gefunden.');
+  const svgData = new XMLSerializer().serializeToString(svgElement);
+  const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = 'ellipse_' + id + '.svg';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+}
+
+function printSVG(id) {
+  const svgElement = document.getElementById('ellipse-svg-' + id);
+  if (!svgElement) return alert('SVG nicht gefunden.');
+  const clone = svgElement.cloneNode(true);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  const svgData = new XMLSerializer().serializeToString(clone);
+  const blob = new Blob([svgData], { type: 'image/svg+xml' });
+  const url = URL.createObjectURL(blob);
+  const win = window.open(url, '_blank');
+  setTimeout(() => {
+    win.print();
+    setTimeout(() => win.close(), 500);
+  }, 500);
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    const id = <?= $this->id ?>;
+    toggleCycleColors(id);
+    const saveToggle = document.getElementById("toggleSaveForm_" + id);
+    const saveForm = document.getElementById("saveFormWrapper_" + id);
+    const loadToggle = document.getElementById("toggleLoadForm_" + id);
+    const loadForm = document.getElementById("loadFormWrapper_" + id);
+    if (saveToggle && saveForm)
+        saveToggle.addEventListener("change", () =>
+            saveForm.classList.toggle("active", saveToggle.checked)
+        );
+    if (loadToggle && loadForm)
+        loadToggle.addEventListener("change", () =>
+            loadForm.classList.toggle("active", loadToggle.checked)
+        );
+    enableDrag("help-content-" + id, "dialog-drag-handle");
+});
+</script>

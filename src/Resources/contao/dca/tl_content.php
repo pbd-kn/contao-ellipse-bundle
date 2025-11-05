@@ -101,7 +101,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_schrittweite_pkt'] = [
     'exclude'   => true,
     'inputType' => 'text',
     'eval'      => ['mandatory' => true, 'rgxp' => 'prcnt', 'tl_class' => 'w50'],
-    'sql'       => "varchar(16) NOT NULL default '1'",
+    'sql'       => "varchar(16) NOT NULL default '30'",
 ];
 
 // Linienstärke
@@ -110,7 +110,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_line_thickness'] = [
     'exclude'   => true,
     'inputType' => 'text',
     'eval'      => ['rgxp' => 'prcnt', 'tl_class' => 'w50'],
-    'sql'       => "varchar(16) NOT NULL default '1'",
+    'sql'       => "varchar(16) NOT NULL default '0.5'",
 ];
 
 // Linienmodus
@@ -260,7 +260,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['showEllipse'] = [
     'exclude'   => true,
     'inputType' => 'checkbox',
     'eval'      => ['tl_class' => 'w50 clr'],
-    'sql'       => "char(1) NOT NULL default ''",
+    'sql'       => "char(1) NOT NULL default '1'",
 ];
 
 // Hilfskreis anzeigen
@@ -269,7 +269,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['showCircle'] = [
     'exclude'   => true,
     'inputType' => 'checkbox',
     'eval'      => ['tl_class' => 'w50'],
-    'sql'       => "char(1) NOT NULL default ''",
+    'sql'       => "char(1) NOT NULL default '1'",
 ];
 
 // Anzeige der Konfiguration aktiv
@@ -278,7 +278,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['template_selection_active'] = [
     'exclude'   => true,
     'inputType' => 'checkbox',
     'eval'      => ['tl_class' => 'clr w50'],
-    'sql'       => "char(1) NOT NULL default ''",
+    'sql'       => "char(1) NOT NULL default '1'",
 ];
 
 /**
@@ -302,7 +302,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_circle_radius'] = [
     'exclude'   => true,
     'inputType' => 'text',
     'eval'      => ['rgxp' => 'prcnt', 'tl_class' => 'w50'],
-    'sql'       => "varchar(16) NOT NULL default '2'",
+    'sql'       => "varchar(16) NOT NULL default '10'",
 ];
 
 // Punkt-Radius (nur Krell)
@@ -311,7 +311,7 @@ $GLOBALS['TL_DCA']['tl_content']['fields']['ellipse_point_radius'] = [
     'exclude'   => true,
     'inputType' => 'text',
     'eval'      => ['rgxp' => 'prcnt', 'tl_class' => 'w50'],
-    'sql'       => "varchar(16) NOT NULL default '1'",
+    'sql'       => "varchar(16) NOT NULL default '20'",
 ];
 
 // Template-Auswahl

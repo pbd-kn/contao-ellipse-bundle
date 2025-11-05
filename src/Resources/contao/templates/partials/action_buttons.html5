@@ -1,6 +1,6 @@
 <div class="ellipse-actions">
-    <button type="button" onclick="submitEllipseAction(<?= $this->id ?>, 'redraw')">🔄 Neu zeichnen</button>
-    <button type="button" onclick="submitEllipseAction(<?= $this->id ?>, 'svgSave')">💾 SVG speichern</button>
-    <button type="button" onclick="submitEllipseAction(<?= $this->id ?>, 'print')">🖨 Drucken</button>
-    <button type="button" onclick="submitEllipseAction(<?= $this->id ?>, 'png')">📸 PNG exportieren</button>
+    <button type="submit" name="submitted_<?= $this->id ?>" value="1">Neu zeichnen</button>
+    <button type="button" onclick="printSVG(<?= $this->id ?>)">SVG drucken</button>
+    <button type="button" onclick="downloadSVG(<?= $this->id ?>)">SVG speichern</button>
+    <button type="button" onclick="toggleHelp(<?= $this->id ?>, true)">Hilfe anzeigen</button>   
 </div>

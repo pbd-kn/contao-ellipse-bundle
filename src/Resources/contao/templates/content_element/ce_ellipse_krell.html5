@@ -57,23 +57,15 @@ function renderEllipseHiddenFields($context)
         <!-- Parameter-Bereich ein-/ausklappbar -->
         <div id="configSection_<?= $this->id ?>" class="ellipse-config-section" style="<?= $this->templateSelectionActive ? '' : 'display:none;' ?>">
 
-            <h3>Parameter anpassen</h3>
-            <!-- Geometrie -->
-            
             <!-- Parameter -->
             <fieldset class="parameter-fieldset" id="parameter_<?= $this->id ?>">
-                <legend>Geometrie</legend>
                 <div class="form-row"><label>Halbachse A</label><input type="number" step="any" name="A_<?= $this->id ?>"                   value="<?= $this->A ?>"></div>
+                <div class="form-row"><label>Halbachse B</label><input type="number" step="any" name="B_<?= $this->id ?>"                   value="<?= $this->B ?>"></div>
                 <div class="form-row"><label>Umdrehungen</label><input type="number" step="any" name="Umdrehungen_<?= $this->id ?>"         value="<?= $this->Umdrehungen ?>"></div>
                 <div class="form-row"><label>Punktschrittweite</label><input type="number" step="any" name="Schrittweite_<?= $this->id ?>"  value="<?= $this->Schrittweite ?>"></div>
                 <div class="form-row"><label>Reihenfolge</label><input type="number" step="any" name="ReihenfolgePkt_<?= $this->id ?>"      value="<?= $this->ReihenfolgePkt ?>"></div>
                 <div class="form-row"><label>Kreisradius</label><input type="number" step="any" name="Kreisradius_<?= $this->id ?>"         value="<?= $this->Kreisradius ?>"></div>
                 <div class="form-row"><label>Abstand</label><input type="number" step="any" name="Abstand_<?= $this->id ?>"                 value="<?= $this->Abstand ?>"> </div>
-            </fieldset>
-
-            <!-- Darstellung -->
-            <fieldset>
-                <legend>Darstellung</legend>
                 <div class="form-row"><label>Linienstärke</label><input type="number" step="any" name="lineWidth_<?= $this->id ?>" value="<?= $this->lineWidth ?>"></div>
                 <div class="form-row">
                     <label>Linienmodus</label>
@@ -86,7 +78,6 @@ function renderEllipseHiddenFields($context)
             </fieldset>
             <!-- Zyklische Farben -->
             <fieldset id="cycleColors_<?= $this->id ?>" class="color-fieldset">
-                <legend>Zyklische Farben</legend>
                 <div class="color-grid">
                     <?php 
                         if (!empty($this->cycleColors) && is_iterable($this->cycleColors)) {
@@ -105,7 +96,7 @@ function renderEllipseHiddenFields($context)
             </fieldset>
             <!-- Optionen -->
             <fieldset>
-                <legend>Optionen</legend>
+                <legend>Debug Optionen</legend>
                 <div class="form-row">
                     <label for="showEllipse_<?= $this->id ?>">Ellipse anzeigen</label>
                     <select name="showEllipse_<?= $this->id ?>" id="showEllipse_<?= $this->id ?>">
@@ -121,23 +112,25 @@ function renderEllipseHiddenFields($context)
                     </select>
                 </div>
             </fieldset>
-            <!-- Aktionen -->
-            <div class="form-actions">
-                <button type="button" onclick="printSVG(<?= $this->id ?>)">SVG drucken</button>
-                <button type="button" onclick="downloadSVG(<?= $this->id ?>)">SVG speichern</button>
-                <button type="button" onclick="toggleHelp(<?= $this->id ?>, true)">Hilfe anzeigen</button>                
-            </div>
         </div> <!-- /configSection -->
-        <div class="form-actions">
-            <button type="submit" name="submitted_<?= $this->id ?>" value="1">Neu zeichnen</button>
-        </div>
+        <?php $this->insert('action_buttons', ['id' => $this->id]); ?>
     </form>
     <!-- ====================================================== -->
     <!-- 🔹 Hilfe popup -->
     <!-- ====================================================== -->
     <div id="help-popup-<?= $this->id ?>" class="help-popup" onclick="toggleHelp(<?= $this->id ?>, false)">
         <div id="help-content-<?= $this->id ?>" class="help-content" onclick="event.stopPropagation()">
-            <h3>Hilfe zu den Parametern</h3>
+            <div class="dialog-drag-handle">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor" style="margin-right:6px;vertical-align:middle">
+                    <circle cx="5" cy="5" r="1.2"/>
+                    <circle cx="5" cy="9" r="1.2"/>
+                    <circle cx="5" cy="13" r="1.2"/>
+                    <circle cx="10" cy="5" r="1.2"/>
+                    <circle cx="10" cy="9" r="1.2"/>
+                    <circle cx="10" cy="13" r="1.2"/>
+                </svg>
+                Verschieben
+            </div>
             <p>Änderungen werden erst mit "Neu zeichnen" übernommen.</p>
             <ul>
                 <li><b>A</b>: Halbachse A</li>
@@ -272,142 +265,4 @@ function renderEllipseHiddenFields($context)
     </div>
 </div> <!-- /ce_ellipse_krell -->
 
-<!-- ====================================================== -->
-<!-- 🔹 Scripts -->
-<!-- ====================================================== -->
-<script>
-
-function toggleHelp(id, show){
-    document.getElementById("help-popup-"+id).style.display = show ? "flex" : "none";
-}
-
-function toggleCycleColors(id) {
-    const mode = document.getElementById("lineMode_" + id);
-    const colors = document.getElementById("cycleColors_" + id);
-    if (!mode || !colors) return;
-    const val = mode.type === "checkbox" ? (mode.checked ? "cycle" : "fixed") : mode.value;
-    colors.style.display = (val === "cycle") ? "block" : "none";
-}
-
-function toggleConfigSection(id) {
-//debugger;
-    const cb = document.getElementById("templateSelectionActive_" + id);
-    const section = document.getElementById("configSection_" + id);
-    if (!cb || !section) return;
-    // Sichtbarkeit umschalten
-    section.style.display = cb.checked ? "block" : "none";
-    // 🔹 Jetzt das verbundene hidden-Feld holen:
-    const hidden = document.querySelector('input[type="hidden"][name="templateSelectionActive_' + id + '"]');
-    // 🔹 Wert synchronisieren (damit beim POST der aktuelle Zustand mitkommt)
-    if (hidden) {
-        hidden.value = cb.checked ? '1' : '0';
-    }
-}
-
-// ======================================================
-// 🔸 Drag-Funktion
-// ======================================================
-function enableDrag(elementId, handleClass) {
-    const el = document.getElementById(elementId);
-    const handle = el.querySelector('.' + handleClass);
-    if (!el || !handle) return;
-    let offsetX = 0, offsetY = 0, startX = 0, startY = 0, dragging = false;
-    handle.style.cursor = "move";
-    handle.addEventListener('mousedown', (e) => {
-        dragging = true;
-        startX = e.clientX;
-        startY = e.clientY;
-        const rect = el.getBoundingClientRect();
-        offsetX = startX - rect.left;
-        offsetY = startY - rect.top;
-        el.style.position = 'absolute';
-        el.style.zIndex = 10000;
-        document.body.style.userSelect = "none";
-    });
-    document.addEventListener('mousemove', (e) => {
-        if (!dragging) return;
-        e.preventDefault();
-        const x = e.clientX - offsetX;
-        const y = e.clientY - offsetY;
-        el.style.left = `${x}px`;
-        el.style.top = `${y}px`;
-    });
-    document.addEventListener('mouseup', () => {
-        dragging = false;
-        document.body.style.userSelect = "";
-    });
-}
-// ======================================================
-// 🔹 SVG speichern
-// ======================================================
-function downloadSVG(id) {
-  const svgElement = document.getElementById('ellipse-svg-' + id);
-  if (!svgElement) {
-    alert('SVG-Element nicht gefunden.');
-    return;
-  }
-
-  // SVG als Text holen
-  const svgData = new XMLSerializer().serializeToString(svgElement);
-  const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-
-  // Download-Link erzeugen
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = 'ellipse_' + id + '.svg';
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-
-  URL.revokeObjectURL(url);
-}
-
-// ======================================================
-// 🔹 SVG drucken
-// ======================================================
-function printSVG(id) {
-  const svgElement = document.getElementById('ellipse-svg-' + id);
-  if (!svgElement) {
-    alert('SVG-Element nicht gefunden.');
-    return;
-  }
-
-  const svgData = new XMLSerializer().serializeToString(svgElement);
-  const printWindow = window.open('', '_blank');
-  printWindow.document.open();
-  printWindow.document.write(`
-    <html>
-      <head>
-        <title>SVG-Druck</title>
-        <style>
-          body { margin: 0; text-align: center; background: white; }
-          svg { width: 100%; height: auto; }
-        </style>
-      </head>
-      <body onload="window.print(); window.close();">
-        ${svgData}
-      </body>
-    </html>
-  `);
-  printWindow.document.close();
-}
-
-
-document.addEventListener("DOMContentLoaded",()=>toggleCycleColors(<?= $this->id ?>));
-document.addEventListener("DOMContentLoaded",()=>{
-    const id = <?= $this->id ?>; // ✅ Variable definieren
-
-    const saveToggle=document.getElementById("toggleSaveForm_<?= $this->id ?>");
-    const saveForm=document.getElementById("saveFormWrapper_<?= $this->id ?>");
-    const loadToggle=document.getElementById("toggleLoadForm_<?= $this->id ?>");
-    const loadForm=document.getElementById("loadFormWrapper_<?= $this->id ?>");
-    if(saveToggle&&saveForm)saveToggle.addEventListener("change",()=>saveForm.classList.toggle("active",saveToggle.checked));
-    if(loadToggle&&loadForm)loadToggle.addEventListener("change",()=>loadForm.classList.toggle("active",loadToggle.checked));
-    // 👉 Drag aktivieren
-    enableDrag("help-content-" + id, "dialog-drag-handle");  
-});
-
-
-
-</script>
+<?php $this->insert('ellipse_scripts', ['id' => $this->id]); ?>

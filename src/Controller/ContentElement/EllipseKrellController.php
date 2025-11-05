@@ -206,7 +206,7 @@ class EllipseKrellController extends AbstractContentElementController
                     $loadSuccess = true;
                     $info=$parameters['info'] ?? ($data['title'] ?? 'Ohne Titel');
                     $loadMessage = "Darstellung geladen. Titel $info";
-                    $points = $this->createEllipsePoints($A, $B, $Kreisradius, $Abstand, $Umdrehungen, $Schrittweite, $debugline);
+                    $points = $this->createEllipsePoints($A, $B, $Umdrehungen, $Schrittweite, $Kreisradius, $Abstand,  $debugline);
                     $this->logger->debugMe('🌀 Ellipse nach laden neu berechnet');
                 } else {
                     $loadSuccess = false;
@@ -240,7 +240,7 @@ class EllipseKrellController extends AbstractContentElementController
             // 🔹 7. Punkte erzeugen falls nicht durch laden schon geschehen
             //----------------------------------------------------------
         if (empty($points)) { 
-            $points = $this->createEllipsePoints($A, $B, $Kreisradius, $Abstand, $Umdrehungen, $Schrittweite, $debugline); 
+            $points = $this->createEllipsePoints($A, $B, $Umdrehungen, $Schrittweite, $Kreisradius, $Abstand, $debugline); 
             $this->logger->debugMe('🌀 Ellipse neu berechnet');
         }
 
@@ -252,8 +252,8 @@ class EllipseKrellController extends AbstractContentElementController
         // 🔹 8. ViewBox
         //----------------------------------------------------------
         $viewBox = "0 0 500 500"; // Default
-        $viewBoxOffset=10 + $Abstand;
-        if ($showCircle) $viewBoxOffset=(2 * $Kreisradius)  + $viewBoxOffset;
+        $viewBoxOffset=10 + $Abstand + $Kreisradius;
+        if ($showCircle) $viewBoxOffset=$viewBoxOffset + 10;   // wegen text etwas mehr
         if (!empty($points[0]['error'])) {
             $errorMsg = $points[0]['error'];
         } else {
@@ -354,13 +354,7 @@ class EllipseKrellController extends AbstractContentElementController
         return $i4 * $h;
     }
 
-    private function createEllipsePoints( float $A, float $B, 
-        float $Kreisradius, // $R
-        float $Abstand,     // $R1
-        float $Umdrehungen,
-        float $Schrittweite, 
-        array &$debugline)
-        : array
+    private function createEllipsePoints( float $A, float $B, float $Umdrehungen, float $Schrittweite, float $Kreisradius, float $Abstand, array &$debugline): array
     {
         $grenzWinkel = $Umdrehungen*360;
         $punkte = [];
