@@ -223,6 +223,11 @@ class EllipseController extends AbstractContentElementController
             $template->savedVariants = $listResult['items'] ?? [];
 
         }
+            //----------------------------------------------------------
+            // 🔹 6. Variantenliste laden
+            //----------------------------------------------------------
+            $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save', self::TYPE);
+            $template->savedVariants = $listResult['items'] ?? [];
         
             //----------------------------------------------------------
             // 🔹 7. Punkte erzeugen (Fallback)

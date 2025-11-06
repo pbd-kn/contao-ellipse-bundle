@@ -228,14 +228,14 @@ class EllipseKrellController extends AbstractContentElementController
                 $loadSuccess = $deleteResult['success'];
             }
 
+
+        }
+
             //----------------------------------------------------------
             // 🔹 6. Variantenliste laden
             //----------------------------------------------------------
             $listResult = $this->paramHelper->getSavedVariants('tl_ellipse_save', self::TYPE);
             $template->savedVariants = $listResult['items'] ?? [];
-
-        }
-
             //----------------------------------------------------------
             // 🔹 7. Punkte erzeugen falls nicht durch laden schon geschehen
             //----------------------------------------------------------

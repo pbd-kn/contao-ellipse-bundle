@@ -113,7 +113,19 @@ function renderEllipseHiddenFields($context)
                 </div>
             </fieldset>
         </div> <!-- /configSection -->
-        <?php $this->insert('action_buttons', ['id' => $this->id]); ?>
+        <?php 
+            $this->insert('action_buttons', [
+                'type'                  => 'krell',
+                'id'                    => $this->id,
+                'A'                     => $this->A,
+                'B'                     => $this->B,
+                'Umdrehungen'           => $this->Umdrehungen,
+                'Schrittweite'          => $this->Schrittweite,
+                'ReihenfolgePkt'        => $this->ReihenfolgePkt,
+                'Kreisradius'           => $this->Kreisradius,
+                'Abstand'               => $this->Abstand,
+            ]); 
+        ?>
     </form>
     <!-- ====================================================== -->
     <!-- 🔹 Hilfe popup -->
@@ -158,14 +170,37 @@ function renderEllipseHiddenFields($context)
     <div class="ellipse-save">
         <label><input type="checkbox" id="toggleSaveForm_<?= $this->id ?>"><strong> Darstellung speichern</strong></label>
         <div id="saveFormWrapper_<?= $this->id ?>" class="ellipse-form-section">
-            <form method="post" action="<?= \Contao\Environment::get('uri'); ?>">
-                <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
-                <?= renderEllipseHiddenFields($this) ?>
-                <label>Titel der Darstellung:</label>
-                <input type="text" name="info" value=""><br>
-                <button type="submit">💾 Speichern</button>
-            </form>
-        </div>
+            <form method="post" action="<?= \Contao\Environment::get('uri'); ?>" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <input type="hidden" name="FORM_SUBMIT" value="ellipse_save_<?= $this->id ?>">
+            <?= renderEllipseHiddenFields($this) ?>
+            <?php
+                $type          = 'krell';
+                $A             = $this->A ?? '';
+                $B             = $this->B ?? '';
+                $Umdrehungen   = $this->Umdrehungen ?? '';
+                $Schrittweite  = $this->Schrittweite ?? '';
+                $ReihenfolgePkt= $this->ReihenfolgePkt ?? '';
+                $Kreisradius   = $this->Kreisradius ?? '';
+                $Abstand       = $this->Abstand ?? '';
+                $parts = array_filter([
+                    $type,
+                    $A,
+                    $B,
+                    $Umdrehungen,
+                    $Schrittweite,
+                    $ReihenfolgePkt,
+                    $Kreisradius,
+                    $Abstand
+                ], fn($v) => $v !== null && $v !== '');
+                $defaultTitle = implode('_', $parts); // 🔹 kein "_" am Ende!
+            ?>
+            <label for="info_<?= $this->id ?>">Titel der Darstellung:</label>
+            <input type="text" name="info" id="info_<?= $this->id ?>"
+               value="<?= htmlspecialchars($defaultTitle, ENT_QUOTES) ?>"
+               style="flex:1; min-width:400px; max-width:100%; font-family:monospace;">
+            <button type="submit">💾 Speichern</button>
+        </form>
+    </div>    
     </div>
     <?php if (isset($this->saveMessage)): ?>
         <p class="<?= $this->saveSuccess ? 'save-ok' : 'save-warning' ?>"><?= $this->saveMessage ?></p>

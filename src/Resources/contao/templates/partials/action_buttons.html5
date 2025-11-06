@@ -1,6 +1,30 @@
-<div class="ellipse-actions">
-    <button type="submit" name="submitted_<?= $this->id ?>" value="1">Neu zeichnen</button>
-    <button type="button" onclick="printSVG(<?= $this->id ?>)">SVG drucken</button>
-    <button type="button" onclick="downloadSVG(<?= $this->id ?>)">SVG speichern</button>
-    <button type="button" onclick="toggleHelp(<?= $this->id ?>, true)">Hilfe anzeigen</button>   
-</div>
+<?php
+/* parameter
+                'type'                  => 'krell', oder ellipse
+                'id'                    => $this->id,
+                'A'                     => $this->A,
+                'B'                     => $this->B,
+                'Umdrehungen'           => $this->Umdrehungen,
+                'Schrittweite'          => $this->Schrittweite,
+                'ReihenfolgePkt'        => $this->ReihenfolgePkt,
+                'Kreisradius'           => $this->Kreisradius,
+                'Abstand'               => $this->Abstand,
+*/ 
+$type          = json_encode($this->type ?? 'keinType');
+$id            = json_encode($this->id);
+$A             = json_encode($this->A);
+$B             = json_encode($this->B);
+$Umdrehungen   = json_encode($this->Umdrehungen);
+$Schrittweite  = json_encode($this->Schrittweite);
+$ReihenfolgePkt= json_encode($this->ReihenfolgePkt);
+$Kreisradius   = json_encode($this->Kreisradius);
+$Abstand       = json_encode($this->Abstand);
+
+echo "<div class='ellipse-actions'>";
+    echo "<button type='submit' name='submitted_".$this->id."' value='1'>Neu zeichnen</button>";
+    echo "<button type='button' onclick=printSVG('".$this->id."')>SVG drucken</button>";
+    //echo "<button type='button' onclick='downloadSVG($type,$id)'>SVG speichern test</button>";
+    echo "<button type='button' onclick='downloadSVG($type,$id,$A,$B,$Umdrehungen,$Schrittweite,$ReihenfolgePkt,$Kreisradius,$Abstand)'>SVG speichern</button>";
+    echo "<button type='button' onclick=toggleHelp('".$this->id."', true)>Hilfe anzeigen</button>";   
+echo "</div>";
+?>

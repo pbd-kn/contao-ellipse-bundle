@@ -48,15 +48,30 @@ function enableDrag(elementId, handleClass) {
     });
 }
 
-function downloadSVG(id) {
+function downloadSVG(type, id, A, B, Umdrehungen, Schrittweite, ReihenfolgePkt, Kreisradius, Abstand) {
   const svgElement = document.getElementById('ellipse-svg-' + id);
   if (!svgElement) return alert('SVG-Element nicht gefunden.');
+
   const svgData = new XMLSerializer().serializeToString(svgElement);
   const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
+
+  // ?? Felder in ein Array – undefined/null werden rausgefiltert auf id verzichte ich im dateinamen
+  const parts = [
+    type,
+    A,
+    B,
+    Umdrehungen,
+    Schrittweite,
+    ReihenfolgePkt,
+    Kreisradius,
+    Abstand
+  ].filter(v => v !== undefined && v !== null && v !== '');
+
+  const filename = parts.join('_') + '.svg';   // in parts seht das array mit den werten
   link.href = url;
-  link.download = 'ellipse_' + id + '.svg';
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
